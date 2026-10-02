@@ -1,0 +1,75 @@
+{
+  "skill_name": "ste-explain",
+  "evals": [
+    {
+      "id": 1,
+      "name": "oauth-simple",
+      "prompt": "explain how OAuth refresh tokens work, keep it simple",
+      "expected_output": "A short, correct explanation. Description mode: every sentence <=25 words, active voice, no hedges, same term used for the same thing throughout.",
+      "files": [],
+      "assertions": [
+        "No sentence exceeds 25 words (run scripts/ste_lint.py)",
+        "Zero hedge/filler words from the delete-on-sight list",
+        "Zero passive-voice constructions",
+        "The token is called the same thing every time it is mentioned (no rotation between 'refresh token', 'the credential', 'the grant')",
+        "Technically correct: refresh token exchanges for a new access token without re-login"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "rewrite-dense",
+      "prompt": "rewrite this paragraph so it's easier to read (file: evals/fixtures/dense-paragraph.md)",
+      "expected_output": "Same facts, restructured into STE-style sentences, plus a one-line note on what changed. No summarizing.",
+      "files": ["evals/fixtures/dense-paragraph.md"],
+      "assertions": [
+        "No sentence exceeds 25 words",
+        "All 8 facts from the fixture's fact list are present",
+        "Zero hedge/filler words",
+        "Output includes a one-line note on what changed",
+        "No noun cluster longer than three words"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "strict-bike-chain",
+      "prompt": "write the steps to replace a bicycle chain, full strict STE",
+      "expected_output": "A numbered procedure. Every step <=20 words, verb first. Cautions appear before the step they protect. Vertical list for tools.",
+      "files": [],
+      "assertions": [
+        "Every numbered step starts with a verb (imperative)",
+        "No step exceeds 20 words",
+        "Zero passive voice",
+        "Any caution or warning appears before its step, not after",
+        "Tools or parts needed appear as a vertical list, not prose"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "etl-runbook",
+      "prompt": "write a short runbook for restarting our nightly ETL job when it hangs. it runs from cron, writes a lock file at /tmp/etl.lock, and holds a Postgres connection that must be killed first",
+      "expected_output": "A runbook an on-call person can follow at 3am: conditions first, verb-first steps, one instruction per sentence. Should trigger the skill without STE being named.",
+      "files": [],
+      "assertions": [
+        "Every step starts with a verb",
+        "No step exceeds 20 words",
+        "The Postgres-connection condition appears before the restart instruction",
+        "One instruction per sentence throughout",
+        "Covers all three given facts: cron, /tmp/etl.lock, Postgres connection"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "jargon-translation",
+      "prompt": "my boss asked what 'eventual consistency' means. explain it so a non-engineer gets it",
+      "expected_output": "Description mode, <=25-word sentences, one concrete analogy at most, no unexplained jargon beyond 'eventual consistency' itself.",
+      "files": [],
+      "assertions": [
+        "No sentence exceeds 25 words",
+        "No unexplained technical term other than 'eventual consistency' itself",
+        "Zero hedge/filler words",
+        "Paragraphs have 6 sentences or fewer",
+        "Technically correct: reads may lag writes; all replicas converge given time"
+      ]
+    }
+  ]
+}

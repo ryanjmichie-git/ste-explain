@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PY=\"$(command -v python3 || command -v python)\"; \"$PY\" \"$CLAUDE_PROJECT_DIR/scripts/hooks/post_edit_validate.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

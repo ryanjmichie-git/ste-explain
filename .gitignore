@@ -1,0 +1,6 @@
+workspace/
+dist/
+__pycache__/
+*.pyc
+feedback.json
+.DS_Store
