@@ -1,6 +1,6 @@
 ---
 name: ste-explain
-description: Explain any topic, or rewrite any text, in Simplified Technical English (ASD-STE100 style) for maximum readability. Use whenever the user asks for an explanation that is simple, clear, plain, or easy to follow; asks to simplify, clarify, or rewrite text so it is easier to read; mentions STE, ASD-STE100, Simplified Technical English, or "80% STE"; or is writing instructions, runbooks, README sections, or docs that other people must follow. Trigger even when the user never names STE. Do not use for summarizing (content must be kept), tone changes ("more professional"), or translation.
+description: Explain any topic, or rewrite any text, in Simplified Technical English (ASD-STE100 style) for maximum readability. Use whenever the user asks for an explanation that is simple, clear, plain, or easy to follow, or aimed at a non-expert (a beginner, a child, a new hire, "ELI5"); asks to simplify, clarify, or rewrite text so it is easier to read; mentions STE, ASD-STE100, Simplified Technical English, or "80% STE"; or is writing instructions, runbooks, README sections, or docs that other people must follow. Trigger even when the user never names STE. Do not use for summarizing (content must be kept), tone changes ("more professional"), or translation.
 ---
 
 # Explain in Simplified Technical English
