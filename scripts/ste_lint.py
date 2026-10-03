@@ -54,6 +54,10 @@ HEDGES = [
     "commence",
     "approximately",
     "in the event that",
+    "rather",
+    "very",
+    "simply",
+    "just",
 ]
 
 PASSIVE_RE = re.compile(
@@ -67,8 +71,7 @@ PASSIVE_ALLOW = {
     "broken",
     "done",
     "gone",
-    "mistaken",
-    "written",  # kept simple
+    "mistaken",  # kept simple
     "closed",
     "based",
     "supposed",
@@ -79,6 +82,12 @@ PASSIVE_ALLOW = {
     "required",
     "unknown",
     "known",
+    # -en adverbs/prepositions, not participles.
+    "when",
+    "then",
+    "often",
+    "even",
+    "between",
 }
 
 FUNCTION_WORDS = {
@@ -215,8 +224,18 @@ def lint_text(text: str, procedure: bool = False):
         is_list = any(BULLET_RE.match(l) for l in lines)
         if HEADING_RE.match(lines[0]):
             continue
-        clean = " ".join(strip_markdown(BULLET_RE.sub("", l)) for l in lines)
-        sentences = split_sentences(clean)
+        # In a list, each bullet starts a new unit, so a ":" lead-in or an
+        # unpunctuated item does not merge with the next item. Wrapped
+        # continuation lines stay with their item.
+        units = []
+        for l in lines:
+            seg = strip_markdown(BULLET_RE.sub("", l)).strip()
+            if not units or (is_list and BULLET_RE.match(l)):
+                units.append(seg)
+            else:
+                units[-1] += " " + seg
+        clean = " ".join(units)
+        sentences = [s for u in units for s in split_sentences(u)]
 
         if not is_list and len(sentences) > PARAGRAPH_LIMIT:
             errors.append(
@@ -232,7 +251,7 @@ def lint_text(text: str, procedure: bool = False):
             for m in PASSIVE_RE.finditer(sent):
                 if m.group(1).lower() not in PASSIVE_ALLOW:
                     warnings.append(f'para {pi}: passive? "{m.group(0)}"')
-            low = " " + sent.lower() + " "
+            low = " " + sent.lower().replace("rather than", "") + " "
             for h in HEDGES:
                 if f" {h} " in low or low.strip().startswith(h + " "):
                     warnings.append(f'para {pi}: hedge/filler "{h}"')
@@ -288,6 +307,43 @@ def self_test():
     e2, w2 = lint_text(good, procedure=True)
     assert not e2, f"good sample should have no errors, got {e2}"
     assert not any("passive" in w for w in w2), f"false passive: {w2}"
+    # Lists: each bullet is its own unit; continuation lines stay joined.
+    substep = (
+        "6. If the old chain has a quick link, open it:\n"
+        "   1. Put the tips of the quick-link pliers into the two links "
+        "next to the quick link."
+    )
+    e3, _ = lint_text(substep, procedure=True)
+    assert not e3, f"lead-in merged with sub-step: {e3}"
+    tools = (
+        "You need these tools:\n- Bicycle repair stand\n- Chain tool\n"
+        "- Quick-link pliers\n"
+        "- New chain for the same number of rear sprockets\n"
+        "- Quick link for the new chain\n- Clean cloth\n- Gloves"
+    )
+    e4, _ = lint_text(tools, procedure=True)
+    assert not e4, f"unpunctuated list merged: {e4}"
+    long_item = (
+        "- Wear gloves.\n- Turn the handle of the chain tool slowly in "
+        "the clockwise direction until the pin of the tool pushes the "
+        "rivet fully out of the chain."
+    )
+    e5, _ = lint_text(long_item, procedure=True)
+    assert e5, "a long list item must still be an error"
+    wrapped = (
+        "1. Turn the handle of the chain tool slowly in the clockwise\n"
+        "   direction until the pin of the tool pushes the rivet fully\n"
+        "   out of the chain.\n2. Remove the chain."
+    )
+    e6, _ = lint_text(wrapped, procedure=True)
+    assert any("26-word" in e for e in e6), f"continuation not joined: {e6}"
+    _, w7 = lint_text("The risk is when the job hangs. The log is often empty.")
+    assert not any("passive" in w for w in w7), f"false passive: {w7}"
+    _, w8 = lint_text("It was written by the old team.")
+    assert any("passive" in w for w in w8), "expected passive for 'was written'"
+    _, w9 = lint_text("Use the tool rather than your hands. The tool is very slow.")
+    assert any('hedge/filler "very"' in w for w in w9), f"missed 'very': {w9}"
+    assert not any('"rather"' in w for w in w9), f"'rather than' flagged: {w9}"
     print("self-test PASS")
     return 0
 
