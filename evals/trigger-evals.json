@@ -4,7 +4,7 @@
   {"query": "what does this error mean? explain simply: ECONNREFUSED 127.0.0.1:5432", "should_trigger": true},
   {"query": "my boss asked what eventual consistency means, explain it so a non-engineer gets it", "should_trigger": true},
   {"query": "write the restart steps for the nightly ETL so the on-call person can follow them half asleep", "should_trigger": true},
-  {"query": "use ASD-STE100 for this", "should_trigger": true},
+  {"query": "use ASD-STE100 for this:\n\nThe filter housing should be inspected at regular intervals, and if any cracking is observed, it is recommended that replacement of the housing be carried out prior to the system being returned to service.", "should_trigger": true},
   {"query": "80% STE please: how does a heat pump work", "should_trigger": true},
   {"query": "this paragraph from our SOP is unreadable, simplify it but keep everything:\n\nUpon receipt of a returned unit, it is incumbent upon the receiving technician to ensure that the RMA number is logged in the tracking system and that a visual inspection is conducted, with any damage noted, prior to the unit being transferred to the repair queue, unless the unit is under warranty, in which case escalation to the warranty desk is required.", "should_trigger": true},
   {"query": "explain gradient descent like i'm a smart high schooler", "should_trigger": true},
