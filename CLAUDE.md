@@ -9,6 +9,8 @@ Everything else in this repo exists to measure and improve it. Read
 - `python3 scripts/ste_lint.py <file>` — deterministic STE structure check
   (`--procedure` for 20-word limit, `--json`, `--self-test`)
 - `python3 scripts/validate_skill.py` — frontmatter + size constraints
+- `python3 scripts/trigger_eval.py` — trigger evals via headless `claude -p`
+  (3 runs × 20 queries; a few % of the 5-hour plan window)
 - `python3 scripts/package_skill.py` — build `dist/ste-explain.zip` for claude.ai upload
 - `/eval [name]` — run all evals with-skill + baseline, grade, summarize
 - `/hillclimb [n]` — n eval→diagnose→edit→re-eval climbs, logged
