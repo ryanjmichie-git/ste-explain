@@ -22,7 +22,7 @@ active. The goal is text a tired reader can parse in one pass.
   needs.
 - **Rewrite.** If the user supplies text rather than a topic, return the STE
   version. Keep every fact. Do not summarize or drop content unless asked.
-  Offer a one-line note on which rules did the most work.
+  End with one short sentence that names the rules that did the most work.
 
 ## Structure rules (apply always)
 
