@@ -23,7 +23,7 @@
       "files": ["evals/fixtures/dense-paragraph.md"],
       "assertions": [
         "No sentence exceeds 25 words",
-        "All 8 facts from the fixture's fact list are present",
+        "All 8 facts from the fixture's fact list are present, each with its original certainty",
         "Zero hedge/filler words",
         "Output includes a one-line note on what changed",
         "No noun cluster longer than three words"
@@ -61,14 +61,14 @@
       "id": 5,
       "name": "jargon-translation",
       "prompt": "my boss asked what 'eventual consistency' means. explain it so a non-engineer gets it",
-      "expected_output": "Description mode, <=25-word sentences, one concrete analogy at most, no unexplained jargon beyond 'eventual consistency' itself.",
+      "expected_output": "Description mode, <=25-word sentences, one concrete analogy at most, no unexplained jargon beyond 'eventual consistency' itself. Accurate about timing: copies converge once writes stop, with no fixed delay promised.",
       "files": [],
       "assertions": [
         "No sentence exceeds 25 words",
         "No unexplained technical term other than 'eventual consistency' itself",
         "Zero hedge/filler words",
         "Paragraphs have 6 sentences or fewer",
-        "Technically correct: reads may lag writes; all replicas converge given time"
+        "Technically correct: reads may lag writes; all replicas converge once writes stop, and no fixed delay is promised (an output that states or implies a set time limit fails)"
       ]
     }
   ]

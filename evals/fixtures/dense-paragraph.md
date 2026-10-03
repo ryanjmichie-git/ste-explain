@@ -35,3 +35,7 @@ department.
    approval expected in Q2.
 8. Approval depends on the finance department finishing the cost-benefit
    analysis.
+
+A fact whose certainty changes counts as missing: a hedge added, removed,
+or moved to another claim (for example, "approval expected in Q2" becoming
+"will probably need approval").
