@@ -46,19 +46,25 @@ def run_one(query, max_turns, cwd):
     p = subprocess.run(
         cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", timeout=600
     )
-    skills = []
+    skills, loaded, reply = [], [], ""
     for line in p.stdout.splitlines():
         try:
             event = json.loads(line)
         except ValueError:
             continue
+        if event.get("type") == "system" and event.get("subtype") == "init":
+            loaded = [s for s in event.get("skills", []) if "ste-explain" in s]
         if event.get("type") == "assistant":
             for block in event["message"]["content"]:
                 if block.get("type") == "tool_use" and block["name"] == "Skill":
                     skills.append(block["input"].get("skill") or "")
+        if event.get("type") == "result":
+            reply = (event.get("result") or "")[:300]
     return {
         "triggered": any("ste-explain" in s for s in skills),
         "skills": skills,
+        "loaded": loaded,
+        "reply": reply,
         "rc": p.returncode,
     }
 
@@ -103,6 +109,13 @@ def main():
     for query, triggered in misses:
         label = "false trigger" if triggered else "missed"
         print(f"  {label}: {query.splitlines()[0][:80]}")
+    others = {
+        s for res in results for s in res["loaded"] if s != "ste-explain:ste-explain"
+    }
+    if others:
+        print(
+            f"WARNING: other ste-explain copies loaded, results confounded: {sorted(others)}"
+        )
     print(f"wrote {OUT.relative_to(REPO)}")
     return 0 if ok else 1
 
