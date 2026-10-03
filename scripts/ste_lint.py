@@ -14,6 +14,7 @@ Exit codes: 0 clean, 1 errors found, 2 usage problem.
 Errors: sentence over limit, paragraph over 6 sentences.
 Warnings: passive voice, hedges, -ing density, noun clusters, semicolons.
 """
+
 import argparse
 import json
 import re
@@ -24,13 +25,35 @@ PROCEDURE_LIMIT = 20
 PARAGRAPH_LIMIT = 6
 
 HEDGES = [
-    "essentially", "basically", "arguably", "fundamentally", "notably",
-    "importantly", "interestingly", "it is worth noting", "it should be noted",
-    "needless to say", "of course", "clearly", "obviously", "quite",
-    "somewhat", "fairly", "actually", "in fact",
-    "as a matter of fact", "at the end of the day", "in order to",
-    "prior to", "subsequent to", "utilize", "leverage", "facilitate",
-    "commence", "approximately", "in the event that",
+    "essentially",
+    "basically",
+    "arguably",
+    "fundamentally",
+    "notably",
+    "importantly",
+    "interestingly",
+    "it is worth noting",
+    "it should be noted",
+    "needless to say",
+    "of course",
+    "clearly",
+    "obviously",
+    "quite",
+    "somewhat",
+    "fairly",
+    "actually",
+    "in fact",
+    "as a matter of fact",
+    "at the end of the day",
+    "in order to",
+    "prior to",
+    "subsequent to",
+    "utilize",
+    "leverage",
+    "facilitate",
+    "commence",
+    "approximately",
+    "in the event that",
 ]
 
 PASSIVE_RE = re.compile(
@@ -40,24 +63,103 @@ PASSIVE_RE = re.compile(
 )
 # Common adjectives/states that match the passive pattern but are not passive.
 PASSIVE_ALLOW = {
-    "open", "broken" , "done", "gone", "mistaken", "written",  # kept simple
-    "closed", "based", "supposed", "used", "interested", "concerned",
-    "allowed", "required", "unknown", "known",
+    "open",
+    "broken",
+    "done",
+    "gone",
+    "mistaken",
+    "written",  # kept simple
+    "closed",
+    "based",
+    "supposed",
+    "used",
+    "interested",
+    "concerned",
+    "allowed",
+    "required",
+    "unknown",
+    "known",
 }
 
 FUNCTION_WORDS = {
-    "a", "an", "the", "this", "that", "these", "those", "of", "to", "in",
-    "on", "for", "with", "and", "or", "but", "if", "when", "then", "at",
-    "by", "from", "as", "is", "are", "was", "were", "be", "it", "its",
-    "you", "your", "we", "our", "they", "their", "not", "no", "do", "does",
-    "can", "will", "must", "each", "every", "all", "any", "more", "most",
-    "than", "into", "over", "under", "after", "before", "between", "use",
+    "a",
+    "an",
+    "the",
+    "this",
+    "that",
+    "these",
+    "those",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "with",
+    "and",
+    "or",
+    "but",
+    "if",
+    "when",
+    "then",
+    "at",
+    "by",
+    "from",
+    "as",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "it",
+    "its",
+    "you",
+    "your",
+    "we",
+    "our",
+    "they",
+    "their",
+    "not",
+    "no",
+    "do",
+    "does",
+    "can",
+    "will",
+    "must",
+    "each",
+    "every",
+    "all",
+    "any",
+    "more",
+    "most",
+    "than",
+    "into",
+    "over",
+    "under",
+    "after",
+    "before",
+    "between",
+    "use",
 }
 
 ING_ALLOW = {
-    "thing", "things", "something", "anything", "everything", "nothing",
-    "during", "morning", "evening", "string", "strings", "king", "ring",
-    "spring", "wing", "sing", "being", "bring",
+    "thing",
+    "things",
+    "something",
+    "anything",
+    "everything",
+    "nothing",
+    "during",
+    "morning",
+    "evening",
+    "string",
+    "strings",
+    "king",
+    "ring",
+    "spring",
+    "wing",
+    "sing",
+    "being",
+    "bring",
 }
 
 BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
@@ -103,8 +205,7 @@ def lint_text(text: str, procedure: bool = False):
     # YAML frontmatter, fenced code blocks, and table rows are exempt.
     text = re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.DOTALL)
     text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-    text = "\n".join(l for l in text.splitlines()
-                     if not l.lstrip().startswith("|"))
+    text = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("|"))
 
     paragraphs = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
     for pi, para in enumerate(paragraphs, 1):
@@ -125,23 +226,25 @@ def lint_text(text: str, procedure: bool = False):
         for sent in sentences:
             n = word_count(sent)
             if n > limit:
-                errors.append(f"para {pi}: {n}-word sentence (limit {limit}): "
-                              f"\"{sent[:60]}...\"")
+                errors.append(
+                    f'para {pi}: {n}-word sentence (limit {limit}): "{sent[:60]}..."'
+                )
             for m in PASSIVE_RE.finditer(sent):
                 if m.group(1).lower() not in PASSIVE_ALLOW:
-                    warnings.append(f"para {pi}: passive? \"{m.group(0)}\"")
+                    warnings.append(f'para {pi}: passive? "{m.group(0)}"')
             low = " " + sent.lower() + " "
             for h in HEDGES:
                 if f" {h} " in low or low.strip().startswith(h + " "):
-                    warnings.append(f"para {pi}: hedge/filler \"{h}\"")
+                    warnings.append(f'para {pi}: hedge/filler "{h}"')
             for span in noun_cluster_spans(sent):
-                warnings.append(f"para {pi}: noun cluster? \"{span}\"")
+                warnings.append(f'para {pi}: noun cluster? "{span}"')
         if ";" in clean:
             warnings.append(f"para {pi}: semicolon — write two sentences")
 
     all_words = re.findall(r"[A-Za-z'-]+", text)
-    ing = [w for w in all_words
-           if w.lower().endswith("ing") and w.lower() not in ING_ALLOW]
+    ing = [
+        w for w in all_words if w.lower().endswith("ing") and w.lower() not in ING_ALLOW
+    ]
     if all_words and len(ing) / len(all_words) > 0.04:
         warnings.append(
             f"-ing density {len(ing)}/{len(all_words)} words — prefer simple verb forms"
@@ -152,8 +255,11 @@ def lint_text(text: str, procedure: bool = False):
 
 def report(errors, warnings, as_json=False):
     if as_json:
-        print(json.dumps({"errors": errors, "warnings": warnings,
-                          "clean": not errors}, indent=2))
+        print(
+            json.dumps(
+                {"errors": errors, "warnings": warnings, "clean": not errors}, indent=2
+            )
+        )
     else:
         for e in errors:
             print(f"ERROR   {e}")
@@ -164,12 +270,16 @@ def report(errors, warnings, as_json=False):
 
 
 def self_test():
-    bad = ("The configuration of the system should essentially be performed "
-           "by the administrator so that the comprehensive fare table "
-           "validation reconciliation process can be initiated without "
-           "further delay or additional manual intervention steps occurring.")
-    good = ("Set the timer to 10 minutes. The pump starts when the timer "
-            "ends. If the light is red, stop the test.")
+    bad = (
+        "The configuration of the system should essentially be performed "
+        "by the administrator so that the comprehensive fare table "
+        "validation reconciliation process can be initiated without "
+        "further delay or additional manual intervention steps occurring."
+    )
+    good = (
+        "Set the timer to 10 minutes. The pump starts when the timer "
+        "ends. If the light is red, stop the test."
+    )
     e1, w1 = lint_text(bad)
     assert e1, "expected a sentence-length error in the bad sample"
     assert any("passive" in w for w in w1), "expected a passive warning"
@@ -186,8 +296,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("file", nargs="?", help="file to lint")
     ap.add_argument("--text", help="lint a string instead of a file")
-    ap.add_argument("--procedure", action="store_true",
-                    help="use the 20-word instruction limit")
+    ap.add_argument(
+        "--procedure", action="store_true", help="use the 20-word instruction limit"
+    )
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
