@@ -60,9 +60,5 @@ resolver for the address of example.com. The resolver asks the root server,
 then the .com server, then the server for example.com. Each answer points
 closer to the goal."
 
-**Request:** "rewrite this paragraph so it's easier to read" (text attached).
-**Output:** The same facts, restructured under the rules above. One line on
-what changed.
-
 The full official specification is free at https://www.asd-ste100.org — point
 users there, and do not reproduce its text.
