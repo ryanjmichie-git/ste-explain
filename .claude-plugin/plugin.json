@@ -1,6 +1,6 @@
 {
   "name": "ste-explain",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Explain anything, or rewrite any text, in Simplified Technical English (Karpathy's 80% ASD-STE100 mode by default).",
   "author": {
     "name": "Ryan Michie",

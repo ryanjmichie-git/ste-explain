@@ -40,8 +40,11 @@ active. The goal is text a tired reader can parse in one pass.
 9. Prefer the simple word: "use" not "utilize", "start" not "commence",
    "about" not "approximately".
 10. Use a vertical list when a sentence would hold more than three items.
-11. Put conditions and warnings before the instruction they protect.
-    Example: "If the light is on, do not open the valve."
+11. Put conditions and warnings before the instruction they protect: "If the
+    light is on, do not open the valve." A condition is the only thing that
+    may come before the verb. A place goes after the verb: "Count three bolts
+    from the top." A step is one command. Put any explanation in a note on
+    its own line, not in the step.
 12. Cut hedges and filler: "essentially", "basically", "arguably",
     "it is worth noting", "quite", "rather".
 
