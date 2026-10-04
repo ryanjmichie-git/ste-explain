@@ -16,10 +16,15 @@ Run $ARGUMENTS climb(s) (default 1). One climb is:
    `skills/ste-explain/SKILL.md` (or `references/rules.md`), show me the
    diff with one sentence of reasoning, then apply it. Prefer deleting a
    confusing line over adding a clarifying one.
-4. **Re-measure.** Run /eval as a fresh iteration. Spawn a
+4. **Re-measure.** Run /eval as a fresh iteration and as a paired batch:
+   arm-a is the committed text, arm-b is the edit. Spawn a
    `red-team-reviewer` subagent on the new skill text in parallel.
-5. **Log.** Append one row to `docs/hillclimb-log.md`: iteration, what
-   changed (one line), assertions passed before → after, reviewer verdict.
+5. **Decide.** Keep the edit only if its target assertion improves over arm-a
+   in the same batch and arm-b's total is not more than 3 below arm-a's.
+   Never compare with a total from an earlier iteration. A total that moves
+   only through evals the edit cannot affect is noise.
+6. **Log.** Append one row to `docs/hillclimb-log.md`: iteration, what
+   changed (one line), assertions passed arm-a → arm-b, reviewer verdict.
 
 Stop early and tell me when: everything in `specs/success-criteria.md`
 passes, OR two consecutive climbs make no progress (then propose a

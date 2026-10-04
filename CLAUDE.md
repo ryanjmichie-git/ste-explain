@@ -10,7 +10,12 @@ Everything else in this repo exists to measure and improve it. Read
   (`--procedure`: 20 words for steps and warnings, 25 for notes and prose; `--json`; `--self-test`)
 - `python3 scripts/validate_skill.py` — frontmatter + size constraints
 - `python3 scripts/trigger_eval.py` — trigger evals via headless `claude -p`
-  (3 runs × 20 queries; a few % of the 5-hour plan window)
+  (3 runs × 20 queries). `--ref <git-ref>` pairs the old and new description
+  in one batch; `--queries evals/trigger-heldout.json` runs the held-out set
+- `python3 scripts/tabulate_eval.py workspace/iteration-N` — grades and lint
+  errors per eval, arm and run
+- `python3 scripts/screen_blind.py make|tally` — blind copies and majority
+  tally when several arms are screened on one assertion
 - `python3 scripts/package_skill.py` — build `dist/ste-explain.zip` for claude.ai upload
 - `/eval [name]` — run all evals with-skill + baseline, grade, summarize
 - `/hillclimb [n]` — n eval→diagnose→edit→re-eval climbs, logged
@@ -32,6 +37,9 @@ resolves this itself.
    If not, cut it. Bloat makes the model ignore the rules that matter.
 5. Use subagents for eval runs and reviews (fresh context, no bias toward
    text this session just wrote). The writer must not grade its own work.
+6. Judge every edit against a control arm in the same batch, and every
+   description edit with `trigger_eval.py --ref`. Totals and trigger rates
+   from different days are not comparable.
 
 ## Hard rules
 

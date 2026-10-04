@@ -13,6 +13,10 @@
         "Zero passive-voice constructions",
         "The token is called the same thing every time it is mentioned (no rotation between 'refresh token', 'the credential', 'the grant')",
         "Technically correct: refresh token exchanges for a new access token without re-login"
+      ],
+      "grading_notes": [
+        "Assertion 2: use the delete-on-sight list in skills/ste-explain/references/rules.md. Frequency and limit words (often, about, usually) are not hedges.",
+        "Assertion 4: a pronoun or a shortened form right after the full term (\"the old one\") is not rotation. A different noun for the same token is."
       ]
     },
     {
@@ -27,6 +31,11 @@
         "Zero hedge/filler words",
         "Output includes a one-line note on what changed",
         "No noun cluster longer than three words"
+      ],
+      "grading_notes": [
+        "Assertion 2: apply the certainty rule in the fixture. Fact 7 passes when the need for board approval is stated plainly and the expectation covers the whole clause or the timing (\"The agency expects the purchase to need board approval in the second quarter\"). It fails when a hedge adverb sits on the need (\"will probably need\", \"will likely need\").",
+        "Assertion 3: about, in most cases, and expects carry source meaning and are not hedges.",
+        "Assertion 5: count real noun phrases. The linter's noun-cluster warnings include verbs and are only hints."
       ]
     },
     {
@@ -41,6 +50,12 @@
         "Zero passive voice",
         "Any caution or warning appears before its step, not after",
         "Tools or parts needed appear as a vertical list, not prose"
+      ],
+      "grading_notes": [
+        "Assertion 1: a step passes if it starts with an imperative verb, or with one condition or time clause (If, When, While, Before, After, Until) followed by a command in the same sentence. It fails if a place phrase or an adverb comes before the verb, or if the clause after the condition is a statement and the command comes in a later sentence.",
+        "Assertion 2: count words per sentence. The 20-word limit applies to numbered steps and to the command sentence of a Warning or Caution. Notes and prose around the steps follow the 25-word limit. This matches scripts/ste_lint.py --procedure.",
+        "Assertion 3: a state after a linking verb (is locked, is closed, is worn) is not passive.",
+        "Assertion 4: test each warning against the first step that it applies to."
       ]
     },
     {
@@ -55,6 +70,11 @@
         "The Postgres-connection condition appears before the restart instruction",
         "One instruction per sentence throughout",
         "Covers all three given facts: cron, /tmp/etl.lock, Postgres connection"
+      ],
+      "grading_notes": [
+        "Assertion 1: a step passes if it starts with an imperative verb, or with one condition or time clause (If, When, While, Before, After, Until) followed by a command in the same sentence. It fails if a place phrase or an adverb comes before the verb, or if the clause after the condition is a statement and the command comes in a later sentence.",
+        "Assertion 2: count words per sentence. The 20-word limit applies to numbered steps and to the command sentence of a Warning or Caution. Notes and prose around the steps follow the 25-word limit. This matches scripts/ste_lint.py --procedure.",
+        "Assertion 4: applies to every sentence, including notes and the intro. One imperative sentence that joins two commands with 'and' or 'then' fails. A command with a time clause (\"Kill the connection before you stop the job\") is one instruction."
       ]
     },
     {
@@ -69,6 +89,10 @@
         "Zero hedge/filler words",
         "Paragraphs have 6 sentences or fewer",
         "Technically correct: reads may lag writes; all replicas converge once writes stop, and no fixed delay is promised (an output that states or implies a set time limit fails)"
+      ],
+      "grading_notes": [
+        "Assertion 3: usually, often, and may carry meaning and are not hedges.",
+        "Assertion 5 has three parts and needs all three. Lag: a read can return old data. Condition: the text says that the copies match only when no new changes arrive; \"in the end\" or \"soon\" with no such condition does not count. No bound: no sentence states or implies a guaranteed time limit. \"soon\" and \"a short time\" are not bounds. A stated duration for how long agreement takes (\"within seconds\", \"after a few seconds all copies agree\") is a bound unless the text also says that the system promises no fixed time. Durations inside an analogy or example are not bounds when the condition is present. A one-line summary that drops the condition or adds a time limit fails."
       ]
     }
   ]
