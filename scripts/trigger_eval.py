@@ -173,7 +173,9 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--queries", default=str(REPO / "evals" / "trigger-evals.json"))
     ap.add_argument("--out", default=str(REPO / "workspace" / "trigger-results.jsonl"))
-    ap.add_argument("--ref", help="git ref of the old SKILL.md; runs old and new paired")
+    ap.add_argument(
+        "--ref", help="git ref of the old SKILL.md; runs old and new paired"
+    )
     ap.add_argument("--model", help="passed to claude -p; default is the CLI default")
     args = ap.parse_args()
 
@@ -218,7 +220,9 @@ def main():
     total = {v: counts([x for x in rows if x["variant"] == v]) for v in variants}
     for v in sorted(variants):
         pos, n_pos, neg, n_neg = total[v]
-        print(f"{v} total: should-trigger {pos}/{n_pos}, should-not triggered {neg}/{n_neg}")
+        print(
+            f"{v} total: should-trigger {pos}/{n_pos}, should-not triggered {neg}/{n_neg}"
+        )
     print()
     for q in queries:
         cells = []
