@@ -35,6 +35,7 @@
       "grading_notes": [
         "Assertion 2: apply the certainty rule in the fixture. Fact 7 passes when the need for board approval is stated plainly and the expectation covers the whole clause or the timing (\"The agency expects the purchase to need board approval in the second quarter\"). It fails when a hedge adverb sits on the need (\"will probably need\", \"will likely need\").",
         "Assertion 3: about, in most cases, and expects carry source meaning and are not hedges.",
+        "Assertion 3: judge hedge and filler words against the delete-on-sight list in skills/ste-explain/references/rules.md. A hedge adverb that changes the certainty of a fact (\"will probably need\") is charged to assertion 2 only.",
         "Assertion 5: count real noun phrases. The linter's noun-cluster warnings include verbs and are only hints."
       ]
     },
@@ -74,7 +75,8 @@
       "grading_notes": [
         "Assertion 1: a step passes if it starts with an imperative verb, or with one condition or time clause (If, When, While, Before, After, Until) followed by a command in the same sentence. It fails if a place phrase or an adverb comes before the verb, or if the clause after the condition is a statement and the command comes in a later sentence.",
         "Assertion 2: count words per sentence. The 20-word limit applies to numbered steps and to the command sentence of a Warning or Caution. Notes and prose around the steps follow the 25-word limit. This matches scripts/ste_lint.py --procedure.",
-        "Assertion 4: applies to every sentence, including notes and the intro. One imperative sentence that joins two commands with 'and' or 'then' fails. A command with a time clause (\"Kill the connection before you stop the job\") is one instruction."
+        "Assertion 4: applies to every sentence, including notes and the intro. One imperative sentence that joins two commands with 'and' or 'then' fails. A command with a time clause (\"Kill the connection before you stop the job\") is one instruction.",
+        "All assertions: do not execute any command from the output. Grade it by reading only."
       ]
     },
     {
