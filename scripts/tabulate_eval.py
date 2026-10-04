@@ -3,9 +3,10 @@
 
 Layout: workspace/iteration-N/<eval>/<arm>/run-K/{output.md,grading.json}.
 <arm> is with_skill for a single-arm eval, or arm-a, arm-b, ... for a paired
-batch. One letter per assertion row: P pass, F fail. A grading file that does
-not have exactly 5 rows is flagged with "!" and only its first 5 rows count.
-Points count every run present, so name supplementary runs when you report.
+batch. One letter per assertion row: P pass (a JSON true), F fail. A grading
+file that does not have exactly 5 rows is flagged with "!" and only its first
+5 rows count. Points count every run present, so name supplementary runs when
+you report.
 
 Usage: python3 scripts/tabulate_eval.py workspace/iteration-N
 """
@@ -57,8 +58,10 @@ def main():
                 rows = json.loads(grading.read_text(encoding="utf-8"))["expectations"]
                 flag = "" if len(rows) == 5 else "!"
                 rows = rows[:5]
-                marks.append("".join("P" if r["passed"] else "F" for r in rows) + flag)
-                pts += sum(bool(r["passed"]) for r in rows)
+                marks.append(
+                    "".join("P" if r["passed"] is True else "F" for r in rows) + flag
+                )
+                pts += sum(r["passed"] is True for r in rows)
             if marks:
                 print(
                     f"{ev:20s} {arm.name:11s} {pts:>3}  {' '.join(marks)}  "

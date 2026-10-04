@@ -7,7 +7,9 @@ make   copies every ITER/EVAL/arm-*/run-*/output.md to ITER/blind/EVAL/NN.md
 tally  reads ITER/blind/EVAL/grader-*.json, each {"NN": {"passed": bool, ...}},
        and prints per arm how many outputs a majority of graders passed. A
        1-1 split counts as a fail and is listed; add a third grader file that
-       covers the split outputs and run tally again.
+       covers the split outputs and run tally again. An output that only one
+       grader covered is listed under "single vote". Only a JSON true is a
+       pass.
 
 Usage:
   python3 scripts/screen_blind.py make  ITER EVAL KEY [--seed 14]
@@ -39,12 +41,14 @@ def tally(it, ev, key_path, field):
     key = json.loads(key_path.read_text(encoding="utf-8"))
     files = sorted((it / "blind" / ev).glob("grader-*.json"))
     graders = [json.loads(p.read_text(encoding="utf-8")) for p in files]
-    arms, split, ungraded = {}, [], []
+    arms, split, single, ungraded = {}, [], [], []
     for nn, where in sorted(key.items()):
-        votes = [bool(g[nn][field]) for g in graders if nn in g]
+        votes = [g[nn][field] is True for g in graders if nn in g]
         if not votes:
             ungraded.append(nn)
             continue
+        if len(votes) == 1:
+            single.append(nn)
         if len(set(votes)) > 1:
             split.append(nn)
         passed = sum(votes) * 2 > len(votes)
@@ -54,6 +58,7 @@ def tally(it, ev, key_path, field):
         print(f"{ev} {arm} {field}: {sum(p for _, p in runs)}/{len(runs)}  {detail}")
     print(f"grader files: {len(files)}")
     print(f"split votes: {', '.join(split) or 'none'}")
+    print(f"single vote: {', '.join(single) or 'none'}")
     print(f"ungraded: {', '.join(ungraded) or 'none'}")
 
 

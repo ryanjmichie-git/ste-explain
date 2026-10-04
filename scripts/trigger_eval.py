@@ -22,16 +22,18 @@ description change only with --ref, never against an earlier run.
 Use at least 6 turns: with fewer, a query that points at a file can end on
 the file search before the model decides on the skill.
 
-A session that produces no assistant message (a crash or a timeout) is
-retried once and then left out of the counts.
+A session fails if it produces no assistant message, or if it times out or
+its stream breaks before the skill call. A failed session is retried once
+and then left out of the counts. With --ref, the same run of the same query
+is then left out of both variants.
 
 Exit codes:
   0  pass. Without --ref: should-trigger >= 22/30 and false triggers <= 2/30,
      scaled to the query file. With --ref: "new" is at most 2 should-trigger
      hits below "old" and has at most 1 more false trigger.
   1  fail.
-  2  invalid run: another ste-explain copy was loaded, or more than 5% of the
-     sessions failed.
+  2  invalid run: another ste-explain copy was loaded, more than 5% of the
+     sessions failed, or the script itself failed (a bad --ref, for example).
 """
 
 import argparse
@@ -39,6 +41,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -51,17 +54,22 @@ TIMEOUT = 600
 
 def make_plugin_copy(ref=None):
     """Copy the plugin to a neutral temp dir. With ref, take SKILL.md from that git ref."""
-    root = Path(tempfile.mkdtemp()) / "plugin"
-    shutil.copytree(REPO / ".claude-plugin", root / ".claude-plugin")
-    shutil.copytree(REPO / "skills", root / "skills")
-    if ref:
-        old = subprocess.run(
-            ["git", "show", f"{ref}:{SKILL_REL}"],
-            cwd=REPO,
-            capture_output=True,
-            check=True,
-        ).stdout
-        (root / SKILL_REL).write_bytes(old)
+    tmp = Path(tempfile.mkdtemp())
+    root = tmp / "plugin"
+    try:
+        shutil.copytree(REPO / ".claude-plugin", root / ".claude-plugin")
+        shutil.copytree(REPO / "skills", root / "skills")
+        if ref:
+            old = subprocess.run(
+                ["git", "show", f"{ref}:{SKILL_REL}"],
+                cwd=REPO,
+                capture_output=True,
+                check=True,
+            ).stdout
+            (root / SKILL_REL).write_bytes(old)
+    except Exception:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
     return root
 
 
@@ -142,11 +150,14 @@ def run_one(query, plugin_dir, max_turns, cwd, model):
                             skills.append(block["input"].get("skill") or "")
                 if event.get("type") == "result":
                     reply = (event.get("result") or "")[:300]
-        except (OSError, KeyError, TypeError) as e:
+        except (OSError, KeyError, TypeError, AttributeError) as e:
             rc = f"error: {e!r}"
+        triggered = any(s in OWN_SKILL for s in skills)
+        # A string rc is a timeout or a broken stream. Such a session counts
+        # only if the skill call came first.
         res = {
-            "triggered": any(s in OWN_SKILL for s in skills),
-            "valid": n_assistant > 0,
+            "triggered": triggered,
+            "valid": n_assistant > 0 and (triggered or not isinstance(rc, str)),
             "skills": skills,
             "loaded": loaded,
             "model": used_model,
@@ -166,6 +177,12 @@ def counts(rows):
     return pos, n_pos, neg, len(rows) - n_pos
 
 
+def both_valid(rows):
+    """Keep a (run, query) only if its session is valid in every variant."""
+    bad = {(r["run"], r["query"]) for r in rows if not r["valid"]}
+    return [r for r in rows if (r["run"], r["query"]) not in bad]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", type=int, default=3)
@@ -178,14 +195,33 @@ def main():
     )
     ap.add_argument("--model", help="passed to claude -p; default is the CLI default")
     args = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        # A redirected stdout on Windows is cp1252. A query can hold more.
+        sys.stdout.reconfigure(errors="backslashreplace")
+    tmp = []
+    try:
+        return run(args, tmp)
+    except Exception as e:
+        # Not exit 1: a caller reads 1 as "the new description costs triggers".
+        print(f"INVALID RUN: {e!r}")
+        return 2
+    finally:
+        for d in tmp:
+            shutil.rmtree(d, ignore_errors=True)
 
+
+def run(args, tmp):
+    """Run the batch and return the exit code. Temp dirs go into tmp for cleanup."""
     queries = json.loads(Path(args.queries).read_text(encoding="utf-8"))
     variants = {"new": make_plugin_copy()}
+    tmp.append(variants["new"].parent)
     if args.ref:
         variants["old"] = make_plugin_copy(args.ref)
+        tmp.append(variants["old"].parent)
     for v in sorted(variants):
         print(f"{v} description: {description(variants[v])}")
     cwd = tempfile.mkdtemp()
+    tmp.append(cwd)
     jobs = [(r, v, q) for r in range(args.runs) for q in queries for v in variants]
 
     out = Path(args.out)
@@ -203,21 +239,19 @@ def main():
             rows.append(row)
             f.write(json.dumps(row) + "\n")
             f.flush()
-    for d in variants.values():
-        shutil.rmtree(d.parent, ignore_errors=True)
-    shutil.rmtree(cwd, ignore_errors=True)
+    kept = both_valid(rows)
 
     print()
     for v in sorted(variants):
         for r in range(args.runs):
             pos, n_pos, neg, n_neg = counts(
-                [x for x in rows if x["variant"] == v and x["run"] == r]
+                [x for x in kept if x["variant"] == v and x["run"] == r]
             )
             print(
                 f"{v} run {r + 1}: should-trigger {pos}/{n_pos}, "
                 f"should-not triggered {neg}/{n_neg}"
             )
-    total = {v: counts([x for x in rows if x["variant"] == v]) for v in variants}
+    total = {v: counts([x for x in kept if x["variant"] == v]) for v in variants}
     for v in sorted(variants):
         pos, n_pos, neg, n_neg = total[v]
         print(
@@ -227,11 +261,7 @@ def main():
     for q in queries:
         cells = []
         for v in sorted(variants):
-            mine = [
-                x
-                for x in rows
-                if x["variant"] == v and x["query"] == q["query"] and x["valid"]
-            ]
+            mine = [x for x in kept if x["variant"] == v and x["query"] == q["query"]]
             cells.append(f"{v} {sum(x['triggered'] for x in mine)}/{len(mine)}")
         mark = "T" if q["should_trigger"] else "N"
         print(f"{mark} {'  '.join(cells)}  {q['query'].splitlines()[0][:70]}")
