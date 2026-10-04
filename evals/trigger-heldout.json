@@ -1,0 +1,18 @@
+[
+  {"query": "I'm new to Rust, explain lifetimes", "should_trigger": true},
+  {"query": "explain what a mortgage escrow account is in layman's terms", "should_trigger": true},
+  {"query": "explain how vaccines train the immune system, I need to tell my grandma", "should_trigger": true},
+  {"query": "our sales team keeps asking what Kubernetes is. give me an explanation they'd get", "should_trigger": true},
+  {"query": "no jargon please: what does a CDN do?", "should_trigger": true},
+  {"query": "summarize this for my manager in one sentence: Hey team, the deploy is postponed to Thursday because QA found a regression in the billing export; please do not merge anything into release until further notice.", "should_trigger": false},
+  {"query": "make this message sound friendlier for my 10-year-old nephew: Hey team, the deploy is postponed to Thursday because QA found a regression in the billing export; please do not merge anything into release until further notice.", "should_trigger": false},
+  {"query": "translate this into Spanish for my grandmother: Hey team, the deploy is postponed to Thursday because QA found a regression in the billing export; please do not merge anything into release until further notice.", "should_trigger": false},
+  {"query": "my mom asked me what a VPN actually does. how do I explain it without the tech talk", "should_trigger": true},
+  {"query": "explain what an index fund is to someone who has never invested", "should_trigger": true},
+  {"query": "break down how a credit score works for a high school econ class", "should_trigger": true},
+  {"query": "what's a docker container? explain it for a product manager who doesn't code", "should_trigger": true},
+  {"query": "explain photosynthesis so my 8-year-old gets it", "should_trigger": true},
+  {"query": "translate this legalese into plain English: The party of the first part shall indemnify and hold harmless the party of the second part from any and all claims arising out of or in connection with the performance of this agreement, except to the extent such claims result from the gross negligence of the party of the second part.", "should_trigger": true},
+  {"query": "proofread my cover letter for grammar only, keep my wording: I am writing to apply for the data analyst position at your company. Over the last three years I have built dashboards for a logistics firm and lead a small team of two. I am excited about the chance to bring this experience to you're team and would welcome the opportunity to discuss it further.", "should_trigger": false},
+  {"query": "translate this paragraph into French for my grandmother: Hey team, the deploy is postponed to Thursday because QA found a regression in the billing export; please do not merge anything into release until further notice.", "should_trigger": false}
+]
