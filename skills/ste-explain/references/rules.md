@@ -15,10 +15,10 @@ apply everything in SKILL.md plus the vocabulary discipline below.
 - Classic illustration of the principle: in STE-style writing, "follow" means
   "to come after", so you "obey the instructions", you do not "follow" them.
 - Keep the same word for the same thing through the whole text. Synonym
-  rotation is a style habit; here it is a defect.
+  rotation is a style habit. Here it is a defect.
 - Technical names and technical verbs that the domain requires are allowed
-  (in aviation: part names; in software: API, token, commit). Use as few as
-  the topic needs, and use each one consistently.
+  (part names in aviation, or API, token, and commit in software). Use as few
+  as the topic needs, and use each one consistently.
 - Do not invent noun stacks. Break any cluster of more than three nouns with
   "of", "for", a hyphen, or a rewrite.
 
@@ -31,12 +31,12 @@ apply everything in SKILL.md plus the vocabulary discipline below.
 - Write instructions as commands: verb first ("Remove the cover."), never as
   suggestions ("The cover should be removed.").
 - Active voice always in instructions. In descriptions, passive is acceptable
-  only when the actor is unknown or irrelevant.
+  only when the actor is unknown.
 
 ## Sentences
 
 - Instructions: 20 words maximum. Descriptions: 25 words maximum. Shorter is
-  better; do not pad to the limit.
+  better. Do not pad to the limit.
 - One instruction per sentence. One topic per sentence.
 - Put the condition before the command: "If the pressure is more than 50 psi,
   close the valve."
@@ -61,8 +61,8 @@ apply everything in SKILL.md plus the vocabulary discipline below.
 
 ## Punctuation
 
-- Prefer short sentences over clever punctuation. Avoid semicolons; write two
-  sentences instead.
+- Prefer short sentences over clever punctuation. Do not use semicolons. Write
+  two sentences instead.
 - Use a colon to introduce a list. Number steps that happen in order.
 - Avoid nested parentheses and long dashes.
 
@@ -112,7 +112,7 @@ Before you answer in strict mode, confirm:
 
 1. No sentence breaks the word limits.
 2. Every instruction starts with a verb.
-3. No passive voice in instructions; passive in descriptions only with an
+3. No passive voice in instructions. In descriptions, passive only with an
    unknown actor.
 4. No word is used with two meanings. No two words name the same thing.
 5. No -ing form where a simple form works.
