@@ -7,7 +7,7 @@ Everything else in this repo exists to measure and improve it. Read
 ## Commands
 
 - `python3 scripts/ste_lint.py <file>` — deterministic STE structure check
-  (`--procedure` for 20-word limit, `--json`, `--self-test`)
+  (`--procedure`: 20 words for steps and warnings, 25 for notes and prose; `--json`; `--self-test`)
 - `python3 scripts/validate_skill.py` — frontmatter + size constraints
 - `python3 scripts/trigger_eval.py` — trigger evals via headless `claude -p`
   (3 runs × 20 queries; a few % of the 5-hour plan window)

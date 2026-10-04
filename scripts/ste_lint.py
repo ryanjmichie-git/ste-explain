@@ -11,7 +11,8 @@ Usage:
   python3 scripts/ste_lint.py --self-test
 
 Exit codes: 0 clean, 1 errors found, 2 usage problem.
-Errors: sentence over limit, paragraph over 6 sentences.
+Errors: sentence over limit, paragraph over 6 sentences. With --procedure,
+steps and warning commands take 20 words; notes and prose take 25.
 Warnings: passive voice, hedges, -ing density, noun clusters, semicolons.
 """
 
@@ -173,6 +174,8 @@ ING_ALLOW = {
 
 BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 HEADING_RE = re.compile(r"^\s*#{1,6}\s+")
+LABEL_RE = re.compile(r"^(note|tip|warning|caution|important)\s*:\s*", re.IGNORECASE)
+NOTE_LABELS = {"note", "tip"}
 
 
 def strip_markdown(line: str) -> str:
@@ -208,13 +211,18 @@ def noun_cluster_spans(sentence: str):
 
 
 def lint_text(text: str, procedure: bool = False):
-    limit = PROCEDURE_LIMIT if procedure else DESCRIPTION_LIMIT
     errors, warnings = [], []
 
     # YAML frontmatter, fenced code blocks, and table rows are exempt.
     text = re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.DOTALL)
     text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
     text = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("|"))
+
+    # --procedure: a step (list item) and the command sentence of a Warning
+    # or Caution take the 20-word limit. A note, a reason after a warning
+    # command, and prose around the list are descriptions and take 25. Text
+    # with no list at all is treated as instructions throughout.
+    has_list = any(BULLET_RE.match(l) for l in text.splitlines())
 
     paragraphs = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
     for pi, para in enumerate(paragraphs, 1):
@@ -224,25 +232,46 @@ def lint_text(text: str, procedure: bool = False):
         is_list = any(BULLET_RE.match(l) for l in lines)
         if HEADING_RE.match(lines[0]):
             continue
+        # Each unit is [text, limit of its first sentence, limit of the rest].
         # In a list, each bullet starts a new unit, so a ":" lead-in or an
-        # unpunctuated item does not merge with the next item. Wrapped
-        # continuation lines stay with their item.
+        # unpunctuated item does not merge with the next item. A labelled
+        # line (Note:, Warning:) also starts a unit. Wrapped continuation
+        # lines stay with their unit.
         units = []
         for l in lines:
+            is_bullet = bool(BULLET_RE.match(l))
             seg = strip_markdown(BULLET_RE.sub("", l)).strip()
-            if not units or (is_list and BULLET_RE.match(l)):
-                units.append(seg)
+            seg = re.sub(r"^>\s*", "", seg)
+            label = LABEL_RE.match(seg)
+            if label:
+                seg = seg[label.end() :]
+            if not units or label or (is_list and is_bullet):
+                if not procedure:
+                    first = rest = DESCRIPTION_LIMIT
+                elif label:
+                    is_note = label.group(1).lower() in NOTE_LABELS
+                    first = DESCRIPTION_LIMIT if is_note else PROCEDURE_LIMIT
+                    rest = DESCRIPTION_LIMIT
+                elif is_bullet or not has_list:
+                    first = rest = PROCEDURE_LIMIT
+                else:
+                    first = rest = DESCRIPTION_LIMIT
+                units.append([seg, first, rest])
             else:
-                units[-1] += " " + seg
-        clean = " ".join(units)
-        sentences = [s for u in units for s in split_sentences(u)]
+                units[-1][0] += " " + seg
+        clean = " ".join(u[0] for u in units)
+        sentences = [
+            (s, u[1] if i == 0 else u[2])
+            for u in units
+            for i, s in enumerate(split_sentences(u[0]))
+        ]
 
         if not is_list and len(sentences) > PARAGRAPH_LIMIT:
             errors.append(
                 f"para {pi}: {len(sentences)} sentences (limit {PARAGRAPH_LIMIT})"
             )
 
-        for sent in sentences:
+        for sent, limit in sentences:
             n = word_count(sent)
             if n > limit:
                 errors.append(
@@ -344,6 +373,50 @@ def self_test():
     _, w9 = lint_text("Use the tool rather than your hands. The tool is very slow.")
     assert any('hedge/filler "very"' in w for w in w9), f"missed 'very': {w9}"
     assert not any('"rather"' in w for w in w9), f"'rather than' flagged: {w9}"
+    # Procedure mode: a step and the command of a warning take 20 words. A
+    # note, a reason after a warning command, and prose around a list take 25.
+    s22 = (
+        "Turn the handle of the chain tool slowly until the pin of the tool "
+        "pushes the rivet fully out of the chain."
+    )
+    n25 = (
+        "The new chain and its quick link must have the same number of links "
+        "as the old chain before you removed it from the bicycle."
+    )
+
+    def errs(text, procedure=True):
+        return lint_text(text, procedure=procedure)[0]
+
+    assert any(
+        "22-word sentence (limit 20)" in e for e in errs("1. Wear gloves.\n2. " + s22)
+    ), "a 22-word step must be an error"
+    assert not errs("1. Wear gloves.\n\n   **Note:** " + s22), "note after a blank line"
+    assert not errs("1. Count the links.\n   Note: " + n25), "label counted as a word"
+    wrapped_note = (
+        "1. Count the links.\n   Note: The new chain and its quick link must "
+        "have the same number\n   of links as the old chain before you removed "
+        "it from the bicycle again."
+    )
+    assert any("26-word sentence (limit 25)" in e for e in errs(wrapped_note))
+    assert any(
+        "(limit 20)" in e for e in errs("**WARNING:** " + s22 + "\n\n1. Wear gloves.")
+    ), "the command of a warning takes 20"
+    own_unit = (
+        "1. Remove the old chain from the rear derailleur\n"
+        "   Note: You need the old chain later to count the number of links in it"
+    )
+    assert not errs(own_unit), "a note line must not merge into its step"
+    assert not errs("> **NOTE:** " + s22 + "\n\n1. Wear gloves."), "blockquote note"
+    lead_in = (
+        "Before you start, make sure that you have all of the tools in this "
+        "list and a clean place to work:\n- Chain tool\n- Gloves"
+    )
+    assert not errs(lead_in), "lead-in prose before a list is a description"
+    assert not errs("Warning: Wear gloves. " + s22 + "\n\n1. Remove the chain."), (
+        "a reason after a warning command is a description"
+    )
+    assert any("(limit 20)" in e for e in errs(s22)), "no list: all instructions"
+    assert not errs("1. Wear gloves.\n2. " + s22, procedure=False)
     print("self-test PASS")
     return 0
 
@@ -353,7 +426,9 @@ def main():
     ap.add_argument("file", nargs="?", help="file to lint")
     ap.add_argument("--text", help="lint a string instead of a file")
     ap.add_argument(
-        "--procedure", action="store_true", help="use the 20-word instruction limit"
+        "--procedure",
+        action="store_true",
+        help="20-word limit for steps and warnings, 25 for notes and prose",
     )
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--self-test", action="store_true")
