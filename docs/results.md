@@ -36,8 +36,8 @@ from those outputs and from `docs/hillclimb-log.md`.
 | jargon-translation | my boss asked what 'eventual consistency' means. explain it so a non-engineer gets it | 12 of 15 | 0, 0, 0 |
 | **Total** | | **70 of 75** | **0** |
 
-The before and after in the README is iteration 16, rewrite-dense run 1,
-unedited. It passed 5 of 5 assertions, so it kept all 8 facts with their
+The longer example in the README, under "A longer example from the eval set",
+is iteration 16, rewrite-dense run 1, unedited. It passed 5 of 5 assertions, so it kept all 8 facts with their
 certainty. The input is one sentence of 128 words. The output has 10
 sentences, and the longest has 21 words.
 
@@ -130,6 +130,33 @@ in 0 of 12 sessions.
 - **Bike assertion 5, 5 of 6.** One run named the two tools in a sentence,
   not in a vertical list. It wrote: "You need a chain tool and a new chain
   with a master link."
+
+## Before-and-after picks
+
+On 2026-10-05, eight test inputs were written for the README example. Seven
+are dense paragraphs of 84 to 97 words. The eighth is the README setup
+section from `evals/trigger-evals.json`. Each input ran once, in a headless
+session with the plugin installed from the public GitHub repo, on
+claude-opus-5[1m]. Every session called the skill.
+
+The prompt for the seven
+paragraphs was "this paragraph is hard to read, simplify it but keep
+everything:". The facts were checked by hand, not by a grader agent.
+
+| Input | Facts and qualifiers | Lint errors | Notes |
+| --- | --- | --- | --- |
+| Wi-Fi router (in the README) | all kept | 0 | "it is recommended" became steps; the closing note has a semicolon |
+| Gradient accumulation | all kept | 1, in the closing note | |
+| API idempotency | all kept | 0 | the advice became a command; the note calls a 53-word sentence a "50-word sentence" |
+| Kubernetes readiness probe | "can result in" became a definite statement | 0 | the recommendation became a command |
+| Water shutoff notice | "contact the management office" became "call" | 1, in the closing note | the recommendation became a command |
+| Travel expense policy | "are eligible for reimbursement, provided that" became "We reimburse" | 1, in the closing note | |
+| Credit card interest | "is typically lost" became "You also lose" | 1, in the closing note | |
+| README setup section | added a template file name and assumed that `make dev` runs the migrations; the output called both assumptions | 3, all in the commentary | |
+
+Three of the eight kept every fact and qualifier. Four inputs held a
+recommendation or advice, and all four outputs made it a direct command. The
+closing note broke the 25-word limit in 4 of the 7 paragraph inputs.
 
 ## Install checks (2026-10-05)
 

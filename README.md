@@ -8,7 +8,7 @@ files with no scripts and no dependencies. The same folder works in claude.ai,
 Claude Code, and the Claude API.
 
 The [before and after](#before-and-after) below shows one real output: a
-sentence of 128 words becomes 10 sentences of 21 words or fewer.
+paragraph of 93 words becomes four numbered steps.
 
 ## Install
 
@@ -51,6 +51,45 @@ To make sure that it fires, put "STE" in the prompt:
 type `/ste-explain`.
 
 ## Before and after
+
+This test input is one paragraph of 93 words and 3 sentences:
+
+```text
+In the event that intermittent connectivity issues are being experienced, it
+is recommended that the router be power-cycled by disconnecting it from the
+electrical outlet for a minimum of 30 seconds prior to reconnection, as this
+allows any residual charge to dissipate and the device's memory to be
+cleared. Following reconnection, a period of approximately two minutes should
+be allowed for the router to complete its startup sequence, during which time
+the indicator lights may flash. Should the issue persist after this procedure
+has been performed twice, the support line should be contacted.
+```
+
+The prompt was `this paragraph is hard to read, simplify it but keep everything:` and
+then the paragraph. This is the output with the skill, unedited:
+
+<blockquote>
+
+If you have intermittent connection problems, power-cycle the router:
+
+1. Disconnect the router from the electrical outlet.
+2. Wait a minimum of 30 seconds. This lets the remaining charge drain and clears the device's memory.
+3. Connect the router to the outlet again.
+4. Wait about two minutes for the router to start. The indicator lights can flash during this time.
+
+If the problem continues after you do this procedure two times, call the support line.
+
+Shorter sentences, one step per line, and active voice did most of the work; the vertical list replaced the long chain of clauses.
+
+</blockquote>
+
+The output kept all six facts and their qualifiers. Apart from the closing
+note, its longest sentence has 15 words. It is the best of eight test inputs
+that each ran once. Three of the eight kept every fact and qualifier, as
+[docs/results.md](docs/results.md#before-and-after-picks) shows.
+
+<details>
+<summary>A longer example from the eval set (128 words)</summary>
 
 This is the input of the rewrite eval. It is one sentence of 128 words:
 
@@ -95,6 +134,8 @@ longest has 21 words.
 
 This is run 1 of 3 in the last eval batch. It kept all eight facts with their
 certainty. Not every run does: see [Limits](#limits).
+
+</details>
 
 ## Modes
 
