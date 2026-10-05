@@ -3,6 +3,7 @@
 
 Runs validate_skill.py first and refuses to package an invalid skill.
 """
+
 import subprocess
 import sys
 import zipfile
@@ -29,9 +30,14 @@ def main():
                 zf.write(f, Path("ste-explain") / f.relative_to(SKILL_DIR))
     print(f"wrote {out}")
     print("install routes:")
-    print("  claude.ai    Settings -> Capabilities -> upload this zip")
-    print("  Claude Code  claude plugin marketplace add "
-          "ryanjmichie-git/ste-explain && /plugin install ste-explain@ste-explain")
+    print(
+        "  claude.ai    Customize -> Skills -> + -> Create skill -> Upload a skill"
+        " (needs Settings -> Capabilities -> Code execution and file creation)"
+    )
+    print(
+        "  Claude Code  claude plugin marketplace add "
+        "ryanjmichie-git/ste-explain && claude plugin install ste-explain@ste-explain"
+    )
     print("  manual       copy skills/ste-explain/ into ~/.claude/skills/")
     return 0
 
