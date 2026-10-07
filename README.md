@@ -27,7 +27,9 @@ claude plugin install ste-explain@ste-explain
 ```
 
 Then start a new session. Inside a session, `/plugin marketplace add` and
-`/plugin install` take the same arguments.
+`/plugin install` take the same arguments. The plugin runs no code.
+`scripts/`, `evals/` and `.claude/` are development tools that installing
+the plugin does not load.
 
 **Claude Code (manual).** Unzip the release zip into `~/.claude/skills/` for
 all projects, or into `.claude/skills/` for one project. From a clone, copy

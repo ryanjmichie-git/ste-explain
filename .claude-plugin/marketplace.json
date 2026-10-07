@@ -1,14 +1,14 @@
 {
-  "name": "ste-explain",
-  "owner": {
-    "name": "Ryan Michie",
-    "url": "https://github.com/ryanjmichie-git"
-  },
-  "plugins": [
-    {
-      "name": "ste-explain",
-      "source": "./",
-      "description": "Explain anything, or rewrite any text, in Simplified Technical English (Karpathy's 80% ASD-STE100 mode by default)."
-    }
-  ]
+    "name": "ste-explain",
+    "owner": {
+        "name": "Ryan Michie",
+        "url": "https://github.com/ryanjmichie-git"
+    },
+    "plugins": [
+        {
+            "name": "ste-explain",
+            "source": "./",
+            "description": "Explain anything, or rewrite any text, in Simplified Technical English (80% ASD-STE100 mode by default)."
+        }
+    ]
 }
