@@ -219,6 +219,86 @@ On this input, plain Claude wrote a shorter rewrite. The two formulas rate
 the two rewrites about the same. The skill's gain here is in the facts kept
 and in the sentence limit, not in the formulas.
 
+## Against a follow-up prompt (iteration 17)
+
+One user said that the prompt "can you restate that in concise,
+non-technical terms please?" works as well as any skill. Iteration 17 tested
+that on 2026-10-06, with no change to the skill.
+
+Three arms ran the five eval prompts three times each. Every session was a
+headless `claude -p` session from an empty directory on claude-opus-5[1m],
+with the file, web and shell tools turned off. The rewrite prompt carried the
+fixture paragraph inline.
+
+- **arm-p:** plain Claude, first answer.
+- **arm-r:** plain Claude, then the same session resumed with the follow-up
+  prompt above. The second answer is the output.
+- **arm-s:** the plugin loaded from a neutral path. The skill fired in 15 of
+  15 sessions.
+
+The 45 outputs were shuffled and graded blind. One Sonnet grader subagent
+graded each output with the pinned grading notes. The primary metric, fixed
+before the runs, is the checks passed per arm without rewrite check 4, the
+skill-specific one-line note. That is 24 checks in 3 runs, or 72 per arm. A
+difference of 3 or fewer is a tie.
+
+| Eval | Checks | Plain (arm-p) | Plain, then the follow-up (arm-r) | Skill (arm-s) |
+| --- | --- | --- | --- | --- |
+| oauth-simple | 15 | 7 | 6 | 13 |
+| rewrite-dense | 12 | 6 | 6 | 7 |
+| strict-bike-chain | 15 | 13 | 3 | 15 |
+| etl-runbook | 15 | 6 | 4 | 9 |
+| jargon-translation | 15 | 6 | 8 | 8 |
+| **Total** | **72** | **38** | **27** | **52** |
+
+With rewrite check 4 counted, the totals are 38, 28 and 53 of 75.
+
+| Measure, mean per output unless stated | arm-p | arm-r | arm-s |
+| --- | --- | --- | --- |
+| Lint errors, total over 15 outputs | 37 | 41 | 9 |
+| Outputs with no lint error | 0 of 15 | 3 of 15 | 8 of 15 |
+| Words | 436 | 306 | 413 |
+| Longest sentence, words | 42.5 | 35.2 | 28.2 |
+| Sentences over 25 words | 8.2% | 12.9% | 2.4% |
+| Flesch Reading Ease | 64.9 | 76.5 | 76.4 |
+| Turns | 1 | 2 | 1 |
+| Output tokens that the CLI reported | 3,272 | 6,601 | 3,239 |
+| Cost that the CLI reported, USD | 0.26 | 0.43 | 0.28 |
+
+The follow-up prompt made the text easier to read by the formula, but it
+removed facts. The gradings show three patterns.
+
+- **It drops specifics.** Claude read "non-technical" as "remove the
+  technical terms". The three runbooks after the follow-up named none of
+  cron, `/tmp/etl.lock` and Postgres, where all three plain first answers
+  named them. In the rewrite, "4.2 percent" became "about 4 percent" and
+  "the second quarter" became "the spring". In one OAuth answer, the refresh
+  token became "being a registered guest".
+- **It does not shorten the long sentences.** The mean longest sentence
+  after the follow-up is 35 words. 12.9% of its sentences are over 25 words,
+  more than in the plain first answer.
+- **It undoes a good procedure.** The plain first answer to "full strict
+  STE" was a numbered procedure that passed 13 of 15 checks, because the
+  prompt names STE. The follow-up turned it into prose that passed 3 of 15.
+
+Caveats:
+
+- The skill's 53 of 75 here is not comparable with the 70 of 75 of
+  iteration 16. That batch ran through subagents in the repo with every tool.
+  This batch ran headless with limited tools, and Sonnet graded it. The three
+  arms here share one harness, so the comparison between arms holds.
+- In one skill session, bike run 1, the skill asked to read its own
+  `references/rules.md` and the headless session refused. The output said so
+  in its first line. The grader passed its five assertions and failed it on
+  quality. In an interactive session, the user is asked for that permission.
+- Two plain sessions tried to write a file and said so in the output. That
+  is an artifact of the tools being off.
+- Three gradings were checked by hand against their outputs, one each from
+  OAuth, rewrite and ETL. All three held.
+- The 60 sessions took 13.5 minutes with 4 workers. The CLI reported a
+  total of 14.57 USD: 3.94 for arm-p, 6.38 for arm-r and 4.26 for arm-s. The
+  45 graders used 584,023 subagent tokens.
+
 ## Install checks (2026-10-05)
 
 | Route | Check | Result |

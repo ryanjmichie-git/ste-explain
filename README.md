@@ -215,14 +215,25 @@ in [docs/results.md](docs/results.md).
 
 **Why not just ask Claude to simplify?** For a one-off, a follow-up prompt
 works. One user asks "can you restate that in concise, non-technical terms
-please?" and is happy with the result.
+please?" and is happy with the result. We tested that prompt against the
+skill on 2026-10-06.
 
-The skill adds three things. The first answer is already simple, with no
-second turn. The rules are the same countable rules every time, so a linter
-can check them. Technical terms that the topic needs stay in.
+Three arms ran the five eval prompts three times each: plain Claude, plain
+Claude and then the follow-up, and the skill. Blind graders counted the
+checks passed, 72 per arm. The method and the failed outputs are in
+[docs/results.md](docs/results.md#against-a-follow-up-prompt-iteration-17).
 
-The skill has not yet been tested against a follow-up prompt. That test is
-next, and the result goes here either way.
+| Arm | Checks passed | Outputs with no lint error | Turns |
+| --- | --- | --- | --- |
+| Plain Claude | 38 of 72 | 0 of 15 | 1 |
+| Plain Claude, then the follow-up | 27 of 72 | 3 of 15 | 2 |
+| The skill, first answer | 52 of 72 | 8 of 15 | 1 |
+
+The follow-up made the text easier to read, but it removed facts. The
+runbooks lost the cron job, the lock file path and Postgres in 3 of 3 runs,
+and "4.2 percent" became "about 4 percent". The skill kept the terms and the
+sentence limit in one turn. It is not perfect either: it passed 52 of 72
+checks, not 72.
 
 ## Related projects
 
