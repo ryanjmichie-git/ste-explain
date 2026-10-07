@@ -49,7 +49,8 @@ all projects, or into `.claude/skills/` for one project. From a clone, copy
 pass its `skill_id` in the `container` parameter of a Messages request that
 has the code execution tool. See
 [Using Agent Skills with the API](https://platform.claude.com/docs/en/build-with-claude/skills-guide).
-This route follows the docs and is not tested here.
+This route was checked on 2026-10-07 with the Python SDK: the upload, then
+one call with the code execution tool. The reply had 0 lint errors.
 
 ## Try it
 

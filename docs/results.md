@@ -309,7 +309,7 @@ Caveats:
 | Claude Code manual | the release zip unzipped into a project's `.claude/skills/`, then the same prompt | skill loaded and called; 0 lint errors in the reply |
 | claude.ai | upload of the zip | not checked here |
 | claude.ai plugin (2026-10-07) | Customize > Plugins, marketplace `ryanjmichie-git/ste-explain`, install, then the eventual-consistency prompt in a new chat | the chat showed "Loaded skill" and the reply followed the rules |
-| Claude API | Skills API upload | not checked here |
+| Claude API (2026-10-07) | `client.skills.create` on `skills/ste-explain`, then one `messages.create` on claude-opus-5-5 with the skill in `container` and the code execution tool, prompt "80% STE please: how does a heat pump work" | the response read the skill through the code execution container; 0 lint errors in the reply; 9,066 input and 2,108 output tokens |
 
 ## Copyright spot check (2026-10-05)
 
