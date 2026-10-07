@@ -308,6 +308,7 @@ Caveats:
 | Claude Code plugin | one headless session with the installed copy: "80% STE please: how does a heat pump work" | skill loaded and called; 0 lint errors in the reply |
 | Claude Code manual | the release zip unzipped into a project's `.claude/skills/`, then the same prompt | skill loaded and called; 0 lint errors in the reply |
 | claude.ai | upload of the zip | not checked here |
+| claude.ai plugin (2026-10-07) | Customize > Plugins, marketplace `ryanjmichie-git/ste-explain`, install, then the eventual-consistency prompt in a new chat | the chat showed "Loaded skill" and the reply followed the rules |
 | Claude API | Skills API upload | not checked here |
 
 ## Copyright spot check (2026-10-05)
