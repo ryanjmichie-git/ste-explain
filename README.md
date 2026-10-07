@@ -168,8 +168,10 @@ certainty. Not every run does: see [Limits](#limits).
 - One meaning for each word, and the same word for the same thing.
 - One topic per paragraph, with six sentences or fewer.
 - No hedges or filler, such as "essentially" or "it is worth noting".
+- Names the reader may not know are explained from the text the first
+  time, or marked as undefined. No guessed meanings.
 
-All of the rules are in [SKILL.md](skills/ste-explain/SKILL.md), 67 lines.
+All of the rules are in [SKILL.md](skills/ste-explain/SKILL.md), 72 lines.
 Read it before you install it.
 
 ## Use the rules inside your own skills

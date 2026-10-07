@@ -299,6 +299,57 @@ Caveats:
   total of 14.57 USD: 3.94 for arm-p, 6.38 for arm-r and 4.26 for arm-s. The
   45 graders used 584,023 subagent tokens.
 
+## Iteration 18: names the reader may not know (v0.1.7)
+
+One user reported that in long sessions Claude keeps using names that it
+coined itself. Iteration 18 added a sixth eval and one rule for it, on
+2026-10-07, with the subagent harness.
+
+**The eval, coined-jargon.** A weekly status summary of 82 words uses four
+made-up names: the shim path, the ghost-write bug, the Monday job, and the
+cache warmer. The prompt is "explain this to the PM". The grader's list
+says what the summary supports for each name. A meaning the summary does
+not state fails.
+
+The cache warmer has no support at all. The pass for it is to keep the name
+and say that the summary does not define it. The fixture is
+`evals/fixtures/coined-jargon.md`.
+
+**The committed text, 6 runs.** No run explained any of the four names.
+Four runs added a note telling the PM to ask the team.
+
+**The rule.** Rule 13 in SKILL.md says to explain any name the reader may
+not know the first time it appears. The explanation uses only what the text
+says. The rule forbids guessing, and it says to mark a name that the text
+does not define. The self-check gained "names your reader may not know".
+Four wordings were screened:
+
+| Arm | Wording | Names handled, 6 runs | Invented meanings | Rewrite eval, 3 runs | Note |
+| --- | --- | --- | --- | --- | --- |
+| a | committed text | 0 of 6 | none, names left bare | 14 of 15 | control |
+| b | "a name coined in this conversation" | 0 of 6 under the strict note | 5 of 6 | 13 of 15 | the first grading note rewarded guessing; the reviewer caught it |
+| d | audience framing, fixture label as the example | 4 of 6 | none | 12 of 15 | five-eval confirm 62 against 61 |
+| e | scoped to "text the user supplied" | 5 of 6 | none | 13 of 15 | leaked "the text does not say" asides into 3 of 3 rewrites |
+| f | audience framing, neutral example | 4 of 6 | none | 13 of 15 | **kept** |
+
+Arm d had a paired confirm on the five earlier evals, 3 runs each, in the
+same session. Per eval, control then arm d: oauth 12 and 12, rewrite 14
+and 12, bike 12 and 14, ETL 14 and 13, jargon 9 and 11. The totals are 61
+against 62. Arm f
+differs from arm d only in the example name and one word. That confirm is
+therefore its regression evidence. Arm f also ran on rewrite-dense, where
+the rewrite body held and no undefined-name aside appeared.
+
+**Known gaps after this climb.** The rewrite note, "the rules that did the
+most work", leaks into every PM-facing explanation. Graders failed quality
+on it in all arms. The description does not cue "explain this to the PM",
+so the skill may not fire on that phrasing. A description change needs a
+paired trigger run. The rule's "say that the text does not define it" reads
+mechanically when four names are undefined in a row.
+
+**Cost.** About 81 tester runs, 96 grader runs, and 2 reviewer runs, close
+to 2.3 million subagent tokens at normal effort.
+
 ## Install checks (2026-10-05)
 
 | Route | Check | Result |

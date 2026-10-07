@@ -43,6 +43,9 @@ translation; proofreading for grammar only.
 10. Conditions and warnings before their instructions.
 11. No hedge/filler words (list in references/rules.md).
 12. Rewrite mode preserves every fact of the source.
+13. Names the stated reader may not know are explained on first use from
+    what the source says. No guessed meanings; a name the source does not
+    define is marked as undefined.
 
 ## Quality bar beyond the rules
 

@@ -47,12 +47,17 @@ active. The goal is text a tired reader can parse in one pass.
     its own line, not in the step.
 12. Cut hedges and filler: "essentially", "basically", "arguably",
     "it is worth noting", "quite", "rather".
+13. Explain any name your reader may not know the first time you use it.
+    Use only what the text says about it: "the Falcon queue, which the text
+    says holds retries". Do not guess what a name means. If the text says
+    nothing about it, keep the name and say that the text does not define
+    it.
 
 ## Self-check before you answer
 
 Read your draft once as an editor. Count the words in your longest sentences
 and split any that break rule 1. Scan for passive voice, synonym rotation,
-noun clusters, and hedges. Fix what you find, then answer. Do not show this
+noun clusters, hedges, and names your reader may not know. Fix what you find, then answer. Do not show this
 check to the user unless they ask for a rule report.
 
 ## Examples

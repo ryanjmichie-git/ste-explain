@@ -25,6 +25,7 @@ EVAL_ORDER = [
     "strict-bike-chain",
     "etl-runbook",
     "jargon-translation",
+    "coined-jargon",
 ]
 
 

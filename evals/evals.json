@@ -24,7 +24,9 @@
       "name": "rewrite-dense",
       "prompt": "rewrite this paragraph so it's easier to read (file: evals/fixtures/dense-paragraph.md)",
       "expected_output": "Same facts, restructured into STE-style sentences, plus a one-line note on what changed. No summarizing.",
-      "files": ["evals/fixtures/dense-paragraph.md"],
+      "files": [
+        "evals/fixtures/dense-paragraph.md"
+      ],
       "assertions": [
         "No sentence exceeds 25 words",
         "All 8 facts from the fixture's fact list are present, each with its original certainty",
@@ -95,6 +97,27 @@
       "grading_notes": [
         "Assertion 3: usually, often, and may carry meaning and are not hedges.",
         "Assertion 5 has three parts and needs all three. Lag: a read can return old data. Condition: the text says that the copies match only when no new changes arrive; \"in the end\" or \"soon\" with no such condition does not count. No bound: no sentence states or implies a guaranteed time limit. \"soon\" and \"a short time\" are not bounds. A stated duration for how long agreement takes (\"within seconds\", \"after a few seconds all copies agree\") is a bound unless the text also says that the system promises no fixed time. Durations inside an analogy or example are not bounds when the condition is present. A one-line summary that drops the condition or adds a time limit fails."
+      ]
+    },
+    {
+      "id": 6,
+      "name": "coined-jargon",
+      "prompt": "explain this to the PM (file: evals/fixtures/coined-jargon.md)",
+      "expected_output": "A short explanation for a product manager. Every made-up label from the summary is explained at first use from what the summary supports, or marked as undefined when the summary says nothing about it. No invented meanings. All facts kept, with their conditions. Description mode: sentences of 25 words or fewer.",
+      "files": [
+        "evals/fixtures/coined-jargon.md"
+      ],
+      "assertions": [
+        "No sentence exceeds 25 words",
+        "Every coined label from the fixture's label list is explained at first use from what the summary supports, or marked as undefined when the summary gives nothing; none appears bare and no meaning is invented",
+        "Zero hedge/filler words",
+        "Paragraphs have 6 sentences or fewer",
+        "All 7 facts from the fixture's fact list are present, with their conditions"
+      ],
+      "grading_notes": [
+        "Assertion 2: check the four labels one by one against the fixture's label list, which says what the summary supports for each. An explanation must be supported by the summary; a meaning the summary does not state fails that label. For the cache warmer, the pass is to keep the name and say the summary does not define it. A label used bare anywhere before its explanation fails. A closing note that only says the names are undefined and the PM should ask the team does not count for the three labels that have context.",
+        "Assertion 3: still, unless, within, and holding carry meaning and are not hedges. Judge against the delete-on-sight list in skills/ste-explain/references/rules.md.",
+        "Assertion 5: fact 7 passes only when the move to 100% stays conditional on the bug not returning. A flat \"next week we go to 100%\" fails."
       ]
     }
   ]
