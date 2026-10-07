@@ -10,5 +10,6 @@
       "source": "./",
       "description": "Explain anything, or rewrite any text, in Simplified Technical English (80% ASD-STE100 mode by default)."
     }
-  ]
+  ],
+  "description": "One skill: explain any topic or rewrite any text in Simplified Technical English."
 }

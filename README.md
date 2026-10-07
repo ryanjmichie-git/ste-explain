@@ -13,7 +13,17 @@ paragraph of 94 words about a phone data plan becomes six short sentences.
 
 ## Install
 
-**claude.ai**
+**claude.ai (plugin)**
+
+1. Go to Customize > Plugins and add the marketplace
+   `ryanjmichie-git/ste-explain`.
+2. Install **ste-explain** from it, then start a new chat.
+
+This route was checked on 2026-10-07. The prompt "my boss asked what
+eventual consistency means, explain it so a non-engineer gets it" loaded the
+skill.
+
+**claude.ai (zip, if the plugin route is not available to you)**
 
 1. Download [ste-explain.zip](https://github.com/ryanjmichie-git/ste-explain/releases/latest/download/ste-explain.zip).
 2. In Settings > Capabilities, turn on **Code execution and file creation**.
@@ -39,6 +49,7 @@ all projects, or into `.claude/skills/` for one project. From a clone, copy
 pass its `skill_id` in the `container` parameter of a Messages request that
 has the code execution tool. See
 [Using Agent Skills with the API](https://platform.claude.com/docs/en/build-with-claude/skills-guide).
+This route follows the docs and is not tested here.
 
 ## Try it
 
