@@ -335,8 +335,9 @@ Four wordings were screened:
 Arm d had a paired confirm on the five earlier evals, 3 runs each, in the
 same session. Control, then arm d: oauth 12 and 12, rewrite 14 and 12,
 bike 12 and 14. ETL went 14 and 13, jargon 9 and 11. The totals are 61
-against 62. Arm f
-differs from arm d only in the example name and one word. That confirm is
+against 62.
+
+Arm f differs from arm d only in the example name and one word. That confirm is
 therefore its regression evidence. Arm f also ran on rewrite-dense, where
 the rewrite body held and no undefined-name aside appeared.
 
