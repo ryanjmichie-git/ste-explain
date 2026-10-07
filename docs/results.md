@@ -133,19 +133,20 @@ in 0 of 12 sessions.
 
 ## Before-and-after picks
 
-On 2026-10-05, eight test inputs were written for the README example. Seven
-are dense paragraphs of 84 to 97 words. The eighth is the README setup
-section from `evals/trigger-evals.json`. Each input ran once, in a headless
-session with the plugin installed from the public GitHub repo, on
-claude-opus-5[1m]. Every session called the skill.
+On 2026-10-05, twelve test inputs were written for the README example.
+Eleven are dense paragraphs of 84 to 98 words. The twelfth is the README
+setup section from `evals/trigger-evals.json`. Each input ran once, in a
+headless session with the plugin installed from the public GitHub repo, on
+claude-opus-5[1m]. The first eight sessions each called the skill. The
+skill-call log for the last four sessions was not kept.
 
-The prompt for the seven
+The prompt for the eleven
 paragraphs was "this paragraph is hard to read, simplify it but keep
 everything:". The facts were checked by hand, not by a grader agent.
 
 | Input | Facts and qualifiers | Lint errors | Notes |
 | --- | --- | --- | --- |
-| Wi-Fi router (in the README) | all kept | 0 | "it is recommended" became steps; the closing note has a semicolon |
+| Wi-Fi router | all kept | 0 | "it is recommended" became steps; the closing note has a semicolon |
 | Gradient accumulation | all kept | 1, in the closing note | |
 | API idempotency | all kept | 0 | the advice became a command; the note calls a 53-word sentence a "50-word sentence" |
 | Kubernetes readiness probe | "can result in" became a definite statement | 0 | the recommendation became a command |
@@ -153,10 +154,70 @@ everything:". The facts were checked by hand, not by a grader agent.
 | Travel expense policy | "are eligible for reimbursement, provided that" became "We reimburse" | 1, in the closing note | |
 | Credit card interest | "is typically lost" became "You also lose" | 1, in the closing note | |
 | README setup section | added a template file name and assumed that `make dev` runs the migrations; the output called both assumptions | 3, all in the commentary | |
+| Autumn leaves | dropped "generally" | 0 | |
+| Flight delay | dropped "automatically"; "disruptions caused by weather" became "weather delays" | 1, in the closing note | added a "Simplified:" label; the note has 37 words |
+| Appliance warranty | "remedied" became "we repair", which is narrower | 0 | made a list of the two exclusions |
+| Phone data plan (in the README) | all kept | 1, in the closing note | the note has 33 words |
 
-Three of the eight kept every fact and qualifier. Four inputs held a
+Four of the twelve kept every fact and qualifier. Four inputs held a
 recommendation or advice, and all four outputs made it a direct command. The
-closing note broke the 25-word limit in 4 of the 7 paragraph inputs.
+closing note broke the 25-word limit in 6 of the 11 paragraph inputs.
+
+## Readability
+
+These tables apply two formulas to the outputs: Flesch Reading Ease, where a
+higher score is easier, and the Flesch-Kincaid grade. The scripts ran on
+2026-10-06 with textstat 0.7.13 for the syllable counts and the linter's
+sentence splitter. Markdown was stripped first. Each row is the mean over
+its runs. "Longest" is the mean of the longest sentence in each run.
+
+Three caveats. The paragraph table has no plain-Claude control. The
+baselines come from iteration 6, an earlier batch. The two formulas count
+words and syllables, and they are not a test of comprehension.
+
+**A. Explain and procedure evals, same prompt, with and without the skill**
+
+| Eval | Skill | Runs | Words | Sentences | Words per sentence | Longest | Over 25 words | Reading ease | Grade |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| oauth-simple | without | 3 | 434.3 | 38.0 | 11.5 | 33.7 | 3.6% | 76.2 | 5.5 |
+| oauth-simple | with | 3 | 360.7 | 32.7 | 11.0 | 18.0 | 0.0% | 70.8 | 6.1 |
+| strict-bike-chain | without | 3 | 1259.7 | 113.3 | 11.1 | 21.3 | 0.0% | 90.0 | 3.5 |
+| strict-bike-chain | with | 3 | 687.0 | 58.3 | 11.8 | 19.3 | 0.0% | 91.8 | 3.4 |
+| etl-runbook | without | 3 | 444.3 | 34.3 | 12.9 | 35.0 | 7.9% | 79.2 | 5.4 |
+| etl-runbook | with | 3 | 347.0 | 35.0 | 9.9 | 17.3 | 0.0% | 89.0 | 3.3 |
+| jargon-translation | without | 3 | 356.3 | 28.0 | 12.8 | 34.7 | 2.2% | 70.9 | 6.5 |
+| jargon-translation | with | 3 | 275.3 | 25.3 | 11.0 | 18.3 | 0.0% | 75.1 | 5.5 |
+| **all four** | **without** | **12** | **623.7** | **53.4** | **12.1** | **31.2** | **3.4%** | **79.1** | **5.2** |
+| **all four** | **with** | **12** | **417.5** | **37.8** | **11.0** | **18.2** | **0.0%** | **81.7** | **4.6** |
+
+The outputs with the skill are shorter, and the formulas rate them as
+easier in three of four evals. OAuth is the exception. Its reading ease fell
+from 76.2 to 70.8 while the longest sentence fell from 33.7 to 18.0 words.
+
+**B. The seven dense paragraphs of the first two batches, input against output**
+
+The output scores leave out the closing note. The paragraphs are the router,
+gradient accumulation, idempotency, Kubernetes, water, expense, and credit
+card inputs.
+
+| Text | Runs | Words | Sentences | Words per sentence | Longest | Over 25 words | Reading ease | Grade |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| inputs | 7 | 91.4 | 3.1 | 29.3 | 45.0 | 46.4% | 33.6 | 15.9 |
+| with the skill, no closing note | 7 | 78.3 | 7.3 | 11.5 | 18.7 | 0.0% | 67.3 | 6.7 |
+
+**C. The rewrite eval, rewritten paragraph only**
+
+The plain-Claude row scores only the quoted rewrite, not the commentary
+around it. The skill row leaves out the closing note.
+
+| Skill | Runs | Words | Sentences | Words per sentence | Longest | Over 25 words | Reading ease | Grade |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| without (iteration 6) | 3 | 98.7 | 6.3 | 15.6 | 23.7 | 0.0% | 36.7 | 12.0 |
+| with (iterations 15 and 16) | 6 | 130.3 | 9.8 | 13.3 | 19.8 | 0.0% | 39.1 | 11.1 |
+
+On this input, plain Claude wrote a shorter rewrite. The two formulas rate
+the two rewrites about the same. The skill's gain here is in the facts kept
+and in the sentence limit, not in the formulas.
 
 ## Install checks (2026-10-05)
 

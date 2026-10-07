@@ -1,14 +1,15 @@
 # ste-explain
 
-**A Claude skill that makes explanations and rewrites easier to read.**
+**A Claude skill for text that other people will read: explanations, rewrites, and instructions.**
 
 It applies the structure rules of Simplified Technical English (ASD-STE100),
 the controlled language of aircraft maintenance manuals. It is two Markdown
 files with no scripts and no dependencies. The same folder works in claude.ai,
-Claude Code, and the Claude API.
+Claude Code, and the Claude API. It is not meant to change how Claude writes
+in every message.
 
 The [before and after](#before-and-after) below shows one real output: a
-paragraph of 93 words becomes four numbered steps.
+paragraph of 94 words about a phone data plan becomes six short sentences.
 
 ## Install
 
@@ -52,17 +53,17 @@ type `/ste-explain`.
 
 ## Before and after
 
-This test input is one paragraph of 93 words and 3 sentences:
+This test input is one paragraph of 94 words and 3 sentences:
 
 ```text
-In the event that intermittent connectivity issues are being experienced, it
-is recommended that the router be power-cycled by disconnecting it from the
-electrical outlet for a minimum of 30 seconds prior to reconnection, as this
-allows any residual charge to dissipate and the device's memory to be
-cleared. Following reconnection, a period of approximately two minutes should
-be allowed for the router to complete its startup sequence, during which time
-the indicator lights may flash. Should the issue persist after this procedure
-has been performed twice, the support line should be contacted.
+Once the monthly high-speed data allowance of 20 GB has been fully consumed,
+data speeds will be reduced to a maximum of 128 kbps for the remainder of
+the billing cycle, a rate which is generally sufficient for messaging and
+email but insufficient for video streaming. Unused high-speed data is not
+carried over into the following month. Additional high-speed data may be
+purchased at any time in increments of 5 GB, although such purchases expire
+at the end of the billing cycle in which they were made, irrespective of
+whether they have been used.
 ```
 
 The prompt was `this paragraph is hard to read, simplify it but keep everything:` and
@@ -70,22 +71,20 @@ then the paragraph. This is the output with the skill, unedited:
 
 <blockquote>
 
-If you have intermittent connection problems, power-cycle the router:
+You get 20 GB of high-speed data each month. When you use all 20 GB, your speed drops to a maximum of 128 kbps for the rest of the billing cycle. That speed is usually enough for messaging and email, but not for video streaming.
 
-1. Disconnect the router from the electrical outlet.
-2. Wait a minimum of 30 seconds. This lets the remaining charge drain and clears the device's memory.
-3. Connect the router to the outlet again.
-4. Wait about two minutes for the router to start. The indicator lights can flash during this time.
+High-speed data that you do not use does not carry over to the next month.
 
-If the problem continues after you do this procedure two times, call the support line.
+You can buy more high-speed data at any time, in 5 GB blocks. Each block expires at the end of the billing cycle in which you bought it, even if you did not use it.
 
-Shorter sentences, one step per line, and active voice did most of the work; the vertical list replaced the long chain of clauses.
+Most of the work came from the active voice, one idea per sentence, and cutting the long passive clauses ("has been fully consumed", "irrespective of whether they have been used") into plain statements.
 
 </blockquote>
 
-The output kept all six facts and their qualifiers. Apart from the closing
-note, its longest sentence has 15 words. It is the best of eight test inputs
-that each ran once. Three of the eight kept every fact and qualifier, as
+The output kept every fact and qualifier. The body has six sentences, and the
+longest has 22 words. The closing note has 33 words, over the skill's own
+limit of 25. This is one of twelve test inputs that each ran once. Four of
+the twelve kept every fact and qualifier, as
 [docs/results.md](docs/results.md#before-and-after-picks) shows.
 
 <details>
@@ -159,6 +158,19 @@ certainty. Not every run does: see [Limits](#limits).
 All of the rules are in [SKILL.md](skills/ste-explain/SKILL.md), 67 lines.
 Read it before you install it.
 
+## Use the rules inside your own skills
+
+A skill that does a task fires every time you run that task. Put the
+structure rules in that skill, and its text follows them with no separate
+trigger. Good candidates are skills that post release notes or Slack updates,
+or that write runbooks and pull request descriptions. Copy the twelve rules
+from the [structure rules](skills/ste-explain/SKILL.md#structure-rules-apply-always)
+in SKILL.md. The MIT license allows it.
+
+This pattern comes from user feedback. One user keeps style rules in a skill
+that posts to Slack, and Claude follows them every time with no reminder.
+This repo does not measure it.
+
 ## Results (v0.1.5)
 
 Five evals ran three times each. Claude subagents wrote and graded the
@@ -185,6 +197,13 @@ in [docs/results.md](docs/results.md).
   output said that it "will probably need" approval.
 - **It can drop a condition.** In 3 of 3 runs, the explanation of eventual
   consistency did not say that copies match only after new changes stop.
+- **It is tested only in short, fresh sessions.** One user reports that it
+  does not hold in long engineering sessions or after the context is
+  compacted. There, Claude kept using names that it had made up.
+- **It turns advice into a command.** "It is recommended that..." became a
+  direct command in 4 of 4 test inputs that held a recommendation.
+- **Its closing note runs long.** In rewrite mode, the note broke the 25-word
+  limit in 6 of 11 rewrites.
 - **The samples are small.** Each eval ran 3 to 6 times, and each trigger
   prompt ran 3 times. Claude graded the outputs, not people.
 - **It is not STE compliance.** The skill does not use the official
@@ -192,8 +211,26 @@ in [docs/results.md](docs/results.md).
   the official specification.
 - **It is for English text.**
 
+## FAQ
+
+**Why not just ask Claude to simplify?** For a one-off, a follow-up prompt
+works. One user asks "can you restate that in concise, non-technical terms
+please?" and is happy with the result.
+
+The skill adds three things. The first answer is already simple, with no
+second turn. The rules are the same countable rules every time, so a linter
+can check them. Technical terms that the topic needs stay in.
+
+The skill has not yet been tested against a follow-up prompt. That test is
+next, and the result goes here either way.
+
 ## Related projects
 
+- [obra/the-elements-of-style](https://github.com/obra/the-elements-of-style)
+  packages Strunk's text of 1918, with its 18 rules, as a reference of about
+  12,000 tokens. Claude reads it when it writes prose. STE differs in that
+  it adds countable limits that a linter can check. ste-explain costs about
+  180 tokens in every session and about 790 more when it fires.
 - [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill)
   applies STE to text that AI agents read, such as tool descriptions and
   messages between agents. It is a Claude Code skill with a linter script.
@@ -223,8 +260,10 @@ official copy at [asd-ste100.org](https://www.asd-ste100.org). This project
 gives the ideas in its own words. It is not affiliated with or endorsed by
 ASD.
 
-The idea comes from
+This project started from
 [a post by Andrej Karpathy](https://x.com/karpathy/status/2105819303471976479)
 in October 2026. He suggested that you ask an LLM to explain things in
 ASD-STE100. He also wrote that he sometimes softens the request to "80% of
-the way". This is an independent project.
+the way". STE itself dates from the late 1970s. See
+[asd-ste100.org](https://www.asd-ste100.org). This is an independent
+project.
