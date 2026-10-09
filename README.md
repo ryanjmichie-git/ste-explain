@@ -4,9 +4,9 @@
 
 It applies the structure rules of Simplified Technical English (ASD-STE100),
 the controlled language of aircraft maintenance manuals. It is two Markdown
-files with no scripts and no dependencies. The same folder works in claude.ai,
-Claude Code, and the Claude API. It is not meant to change how Claude writes
-in every message.
+files with no scripts and no dependencies. It makes no network calls and
+stores no data. The same folder works in claude.ai, Claude Code, and the
+Claude API. It is not meant to change how Claude writes in every message.
 
 The [before and after](#before-and-after) below shows one real output: a
 paragraph of 94 words about a phone data plan becomes six short sentences.
@@ -99,7 +99,7 @@ The output kept every fact and qualifier. The body has six sentences, and the
 longest has 22 words. The closing note has 33 words, over the skill's own
 limit of 25. This is one of twelve test inputs that each ran once. Four of
 the twelve kept every fact and qualifier, as
-[docs/results.md](docs/results.md#before-and-after-picks) shows.
+[docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/docs/results.md#before-and-after-picks) shows.
 
 <details>
 <summary>A longer example from the eval set (128 words)</summary>
@@ -155,7 +155,7 @@ certainty. Not every run does: see [Limits](#limits).
 - **Default (80% STE).** All structure rules apply. Technical terms that the
   topic needs are allowed.
 - **Strict.** Say "strict", "full STE", or "100%". The skill then also applies
-  the word rules in [references/rules.md](skills/ste-explain/references/rules.md).
+  the word rules in [references/rules.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/references/rules.md).
 - **Rewrite.** Paste text instead of a topic. The skill keeps every fact. It
   ends with one sentence that names the rules that did the most work.
 
@@ -171,7 +171,7 @@ certainty. Not every run does: see [Limits](#limits).
 - Names the reader may not know are explained from the text the first
   time, or marked as undefined. No guessed meanings.
 
-All of the rules are in [SKILL.md](skills/ste-explain/SKILL.md), 72 lines.
+All of the rules are in [SKILL.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/SKILL.md), 72 lines.
 Read it before you install it.
 
 ## Use the rules inside your own skills
@@ -180,7 +180,7 @@ A skill that does a task fires every time you run that task. Put the
 structure rules in that skill, and its text follows them with no separate
 trigger. Good candidates are skills that post release notes or Slack updates,
 or that write runbooks and pull request descriptions. Copy the twelve rules
-from the [structure rules](skills/ste-explain/SKILL.md#structure-rules-apply-always)
+from the [structure rules](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/SKILL.md#structure-rules-apply-always)
 in SKILL.md. The MIT license allows it.
 
 This pattern comes from user feedback. One user keeps style rules in a skill
@@ -193,7 +193,7 @@ Five evals ran three times each. Claude subagents wrote and graded the
 outputs, and a deterministic linter checked the structure. The tester always
 had the skill, so the eval rows show the output when the skill fires. The
 trigger rows show whether it fires. The full tables and the failed outputs are
-in [docs/results.md](docs/results.md).
+in [docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/docs/results.md).
 
 | Measure | Result |
 | --- | --- |
@@ -237,7 +237,7 @@ skill on 2026-10-06.
 Three arms ran the five eval prompts three times each: plain Claude, plain
 Claude and then the follow-up, and the skill. Blind graders counted the
 checks passed, 72 per arm. The method and the failed outputs are in
-[docs/results.md](docs/results.md#against-a-follow-up-prompt-iteration-17).
+[docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/docs/results.md#against-a-follow-up-prompt-iteration-17).
 
 | Arm | Checks passed | Outputs with no lint error | Turns |
 | --- | --- | --- | --- |
@@ -273,9 +273,13 @@ it does. It has no scripts, so the same folder works on claude.ai and the API.
 This repo is also the test harness. `specs/` holds the contract, `evals/` the
 graded cases, `scripts/` the linter and the eval tools, and `.claude/` the
 subagents and slash commands. Open the repo in Claude Code and run `/eval`,
-then `/hillclimb`. [CLAUDE.md](CLAUDE.md) has the rules. An eval batch costs
+then `/hillclimb`. [CLAUDE.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/CLAUDE.md) has the rules. An eval batch costs
 about 1.6 million subagent tokens, so read
-[docs/results.md](docs/results.md) first.
+[docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/docs/results.md) first.
+
+## Support
+
+Report a problem or a security problem in [GitHub Issues](https://github.com/ryanjmichie-git/ste-explain/issues).
 
 ## License and credits
 

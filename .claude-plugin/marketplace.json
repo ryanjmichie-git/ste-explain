@@ -8,7 +8,7 @@
     {
       "name": "ste-explain",
       "source": "./",
-      "description": "Explain anything, or rewrite any text, in Simplified Technical English (80% ASD-STE100 mode by default)."
+      "description": "Explains topics and rewrites text in the style of Simplified Technical English: short sentences, active voice, one instruction per step, and every fact kept. It is not an official ASD-STE100 tool."
     }
   ],
   "description": "One skill: explain any topic or rewrite any text in Simplified Technical English."
