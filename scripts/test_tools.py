@@ -447,10 +447,13 @@ def test_release_builds_tag_after_main_moves():
         repo = Path(d)
         release_repo(repo, "0.1.8")
         (repo / "CLAUDE.md").write_text("dev guide 2\n", encoding="utf-8")
+        (repo / "README.md").write_text("readme after the tag\n", encoding="utf-8")
         git(repo, "commit", "-q", "-am", "docs after the tag")
         build_release.build("v0.1.8", repo)
         files = git(repo, "ls-tree", "-r", "--name-only", "release").splitlines()
         assert len(files) == 5 and "CLAUDE.md" not in files, files
+        readme = git(repo, "show", "release:README.md")
+        assert readme == "readme", readme
 
 
 TESTS = [
