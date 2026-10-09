@@ -16,9 +16,11 @@ Everything else in this repo exists to measure and improve it. Read
   errors per eval, arm and run
 - `python3 scripts/screen_blind.py make|tally` — blind copies and majority
   tally when several arms are screened on one assertion
-- `python3 scripts/test_tools.py` — checks for trigger_eval, tabulate_eval and
-  screen_blind with the `claude` call faked (no session starts)
+- `python3 scripts/test_tools.py` — checks for trigger_eval, tabulate_eval,
+  screen_blind and build_release with the `claude` call faked (no session starts)
 - `python3 scripts/package_skill.py` — build `dist/ste-explain.zip` for claude.ai upload
+- `python3 scripts/build_release.py vX.Y.Z` — commit the shipped files of a tag
+  onto the `release` branch that the plugin directory tracks
 - `/eval [name]` — run all evals with-skill + baseline, grade, summarize
 - `/hillclimb [n]` — n eval→diagnose→edit→re-eval climbs, logged
 - `/lint <file>` — lint one file

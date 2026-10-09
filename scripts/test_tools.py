@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks for the eval tooling: trigger_eval, screen_blind, tabulate_eval.
+"""Checks for the tooling: trigger_eval, screen_blind, tabulate_eval, build_release.
 
 No headless session starts. run_claude, the one slow external call of
 trigger_eval.py, is replaced by a fake that returns stream-json text. The
@@ -13,12 +13,14 @@ import contextlib
 import io
 import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import build_release  # noqa: E402
 import screen_blind  # noqa: E402
 import tabulate_eval  # noqa: E402
 import trigger_eval as te  # noqa: E402
@@ -351,6 +353,106 @@ def test_tabulate_counts_only_true():
     assert "  4  PFPPP  lint 0" in buf.getvalue(), buf.getvalue()
 
 
+def git(repo, *args):
+    return subprocess.run(
+        ["git", *args], cwd=repo, capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
+def release_repo(repo, version):
+    """A temp repo with plugin files and dev files, tagged v0.1.8."""
+    files = {
+        ".claude-plugin/plugin.json": json.dumps(
+            {"name": "ste-explain", "version": version}
+        ),
+        ".claude-plugin/marketplace.json": "{}",
+        "skills/ste-explain/SKILL.md": "---\nname: ste-explain\n---\n",
+        "skills/ste-explain/references/rules.md": "rules\n",
+        "README.md": "readme\n",
+        "LICENSE": "MIT\n",
+        "CLAUDE.md": "dev guide\n",
+        ".claude/settings.json": "{}",
+        "scripts/x.py": "print(1)\n",
+    }
+    for rel, text in files.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text, encoding="utf-8")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "config", "user.name", "t")
+    git(repo, "config", "user.email", "t@t")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "init")
+    git(repo, "tag", "v0.1.8")
+
+
+def test_release_ships_only_plugin_files():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        build_release.build("v0.1.8", repo)
+        files = git(repo, "ls-tree", "-r", "--name-only", "release").splitlines()
+        assert files == [
+            ".claude-plugin/plugin.json",
+            "LICENSE",
+            "README.md",
+            "skills/ste-explain/SKILL.md",
+            "skills/ste-explain/references/rules.md",
+        ], files
+        assert git(repo, "status", "--porcelain") == ""
+        assert git(repo, "branch", "--show-current") == "main"
+        subject = git(repo, "log", "-1", "--format=%s", "release")
+        assert subject.startswith("release: v0.1.8 (from "), subject
+
+
+def test_release_refuses_version_mismatch():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.7")
+        try:
+            build_release.build("v0.1.8", repo)
+        except build_release.ReleaseError as e:
+            msg = str(e)
+        else:
+            raise AssertionError("no ReleaseError for version 0.1.7 at tag v0.1.8")
+        assert "0.1.7" in msg and "v0.1.8" in msg, msg
+        r = subprocess.run(
+            ["git", "rev-parse", "-q", "--verify", "refs/heads/release"],
+            cwd=repo,
+            capture_output=True,
+        )
+        assert r.returncode != 0
+
+
+def test_release_chains_and_skips_no_change():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        first = build_release.build("v0.1.8", repo)
+        (repo / "README.md").write_text("readme 2\n", encoding="utf-8")
+        plugin = {"name": "ste-explain", "version": "0.1.9"}
+        (repo / ".claude-plugin/plugin.json").write_text(
+            json.dumps(plugin), encoding="utf-8"
+        )
+        git(repo, "commit", "-q", "-am", "next")
+        git(repo, "tag", "v0.1.9")
+        second = build_release.build("v0.1.9", repo)
+        assert git(repo, "rev-list", "--count", "release") == "2"
+        assert git(repo, "rev-parse", "release^") == first
+        assert build_release.build("v0.1.9", repo) == second
+        assert git(repo, "rev-list", "--count", "release") == "2"
+
+
+def test_release_builds_tag_after_main_moves():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        (repo / "CLAUDE.md").write_text("dev guide 2\n", encoding="utf-8")
+        git(repo, "commit", "-q", "-am", "docs after the tag")
+        build_release.build("v0.1.8", repo)
+        files = git(repo, "ls-tree", "-r", "--name-only", "release").splitlines()
+        assert len(files) == 5 and "CLAUDE.md" not in files, files
+
+
 TESTS = [
     test_pair_rule,
     test_unpaired_floor,
@@ -362,6 +464,10 @@ TESTS = [
     test_print_survives_cp1252,
     test_tally_single_vote_and_strings,
     test_tabulate_counts_only_true,
+    test_release_ships_only_plugin_files,
+    test_release_refuses_version_mismatch,
+    test_release_chains_and_skips_no_change,
+    test_release_builds_tag_after_main_moves,
 ]
 
 
