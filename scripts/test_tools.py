@@ -456,6 +456,72 @@ def test_release_builds_tag_after_main_moves():
         assert readme == "readme", readme
 
 
+def bump(repo, version):
+    plugin = {"name": "ste-explain", "version": version}
+    (repo / ".claude-plugin/plugin.json").write_text(
+        json.dumps(plugin), encoding="utf-8"
+    )
+    git(repo, "commit", "-q", "-am", f"version {version}")
+    git(repo, "tag", f"v{version}")
+
+
+def release_error(tag, repo):
+    try:
+        build_release.build(tag, repo)
+    except build_release.ReleaseError as e:
+        return str(e)
+    raise AssertionError(f"no ReleaseError for {tag}")
+
+
+def test_release_continues_origin_release_on_fresh_clone():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        first = build_release.build("v0.1.8", repo)
+        git(repo, "update-ref", "refs/remotes/origin/release", first)
+        git(repo, "branch", "-q", "-D", "release")
+        bump(repo, "0.1.9")
+        build_release.build("v0.1.9", repo)
+        assert git(repo, "rev-parse", "release^") == first
+
+
+def test_release_refuses_version_not_above_release():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        bump(repo, "0.1.9")
+        head = build_release.build("v0.1.9", repo)
+        msg = release_error("v0.1.8", repo)
+        assert "0.1.8" in msg and "0.1.9" in msg, msg
+        (repo / "README.md").write_text("readme 2\n", encoding="utf-8")
+        git(repo, "commit", "-q", "-am", "same version, new tree")
+        git(repo, "tag", "-f", "v0.1.9")
+        release_error("v0.1.9", repo)
+        assert git(repo, "rev-parse", "release") == head
+
+
+def test_release_refuses_checked_out_release():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        head = build_release.build("v0.1.8", repo)
+        bump(repo, "0.1.9")
+        git(repo, "checkout", "-q", "release")
+        release_error("v0.1.9", repo)
+        assert git(repo, "rev-parse", "release") == head
+
+
+def test_release_reports_invalid_plugin_json():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        repo = Path(d)
+        release_repo(repo, "0.1.8")
+        (repo / ".claude-plugin/plugin.json").write_text("{not json", encoding="utf-8")
+        git(repo, "commit", "-q", "-am", "broken manifest")
+        git(repo, "tag", "-f", "v0.1.8")
+        msg = release_error("v0.1.8", repo)
+        assert "plugin.json" in msg, msg
+
+
 TESTS = [
     test_pair_rule,
     test_unpaired_floor,
@@ -471,6 +537,10 @@ TESTS = [
     test_release_refuses_version_mismatch,
     test_release_chains_and_skips_no_change,
     test_release_builds_tag_after_main_moves,
+    test_release_continues_origin_release_on_fresh_clone,
+    test_release_refuses_version_not_above_release,
+    test_release_refuses_checked_out_release,
+    test_release_reports_invalid_plugin_json,
 ]
 
 

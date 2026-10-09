@@ -41,8 +41,22 @@ def git(repo, *args, env=None):
     return p.stdout.strip()
 
 
+def plugin_version(repo, rev, name):
+    text = git(repo, "show", f"{rev}:.claude-plugin/plugin.json")
+    try:
+        return json.loads(text).get("version")
+    except json.JSONDecodeError as e:
+        raise ReleaseError(f"plugin.json at {name} is not valid JSON: {e}")
+
+
+def version_key(version):
+    return tuple(int(part) for part in version.split("."))
+
+
 def build(tag, repo=REPO, branch="release"):
     """Commit the SHIPPED paths of tag onto branch; return the branch head sha."""
+    if run(repo, "symbolic-ref", "-q", "HEAD").stdout.strip() == f"refs/heads/{branch}":
+        raise ReleaseError(f"{branch} is checked out; switch to main first")
     p = run(repo, "rev-parse", "-q", "--verify", f"refs/tags/{tag}^{{commit}}")
     if p.returncode != 0:
         raise ReleaseError(f"no tag {tag}")
@@ -50,8 +64,7 @@ def build(tag, repo=REPO, branch="release"):
     for path in SHIPPED:
         if run(repo, "cat-file", "-e", f"{commit}:{path}").returncode != 0:
             raise ReleaseError(f"{path} is missing at {tag}")
-    plugin = json.loads(git(repo, "show", f"{commit}:.claude-plugin/plugin.json"))
-    version = plugin.get("version")
+    version = plugin_version(repo, commit, tag)
     if version != tag.removeprefix("v"):
         raise ReleaseError(f"plugin.json version {version} does not match tag {tag}")
 
@@ -62,10 +75,21 @@ def build(tag, repo=REPO, branch="release"):
         git(repo, "rm", "--cached", "-r", "-q", "-f", "--", ".", *keep, env=env)
         tree = git(repo, "write-tree", env=env)
 
-    p = run(repo, "rev-parse", "-q", "--verify", f"refs/heads/{branch}")
-    head = p.stdout.strip() if p.returncode == 0 else None
+    head = None
+    # A fresh clone has no local branch yet; continue the pushed one.
+    for ref in (f"refs/heads/{branch}", f"refs/remotes/origin/{branch}"):
+        p = run(repo, "rev-parse", "-q", "--verify", ref)
+        if p.returncode == 0:
+            head = p.stdout.strip()
+            break
     if head and git(repo, "rev-parse", f"{head}^{{tree}}") == tree:
         return head
+    if head:
+        released = plugin_version(repo, head, branch)
+        if version_key(version) <= version_key(released):
+            raise ReleaseError(
+                f"version {version} at {tag} is not above {released} on {branch}"
+            )
     parents = ["-p", head] if head else []
     message = f"release: {tag} (from {commit[:7]})"
     new = git(repo, "commit-tree", tree, *parents, "-m", message)
@@ -85,7 +109,7 @@ def main(argv):
         return 1
     files = git(REPO, "ls-tree", "-r", "--name-only", sha).splitlines()
     print(f"release {sha[:7]}: {tag}, {len(files)} files")
-    print("next: git push origin release")
+    print(f"next: git push origin main {tag} release")
     return 0
 
 
