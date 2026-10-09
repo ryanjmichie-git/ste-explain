@@ -1,0 +1,15 @@
+{
+  "name": "ste-explain",
+  "displayName": "STE Explain",
+  "version": "0.1.8",
+  "description": "Explains topics and rewrites text in the style of Simplified Technical English: short sentences, active voice, one instruction per step, and every fact kept. It is not an official ASD-STE100 tool.",
+  "author": {
+    "name": "Ryan Michie",
+    "url": "https://github.com/ryanjmichie-git"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/ryanjmichie-git/ste-explain",
+  "repository": "https://github.com/ryanjmichie-git/ste-explain",
+  "documentationUrl": "https://github.com/ryanjmichie-git/ste-explain#readme",
+  "supportUrl": "https://github.com/ryanjmichie-git/ste-explain/issues"
+}
