@@ -2,8 +2,10 @@
 description: Validate and package the skill for distribution
 ---
 
-1. Run `python3 scripts/ste_lint.py skills/ste-explain/SKILL.md` — the skill
-   must obey its own rules. Fix violations before packaging.
+1. Run `python3 scripts/ste_lint.py skills/ste-explain/SKILL.md` and
+   `python3 scripts/check_consistency.py` — the skill must obey its own rules,
+   and the README, manifests, spec and evals must agree with it. Fix
+   violations before packaging.
 2. Run `python3 scripts/package_skill.py` (it validates frontmatter first
    and refuses to package on failure).
 3. Confirm `dist/ste-explain.zip` exists and list its contents.

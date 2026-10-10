@@ -157,8 +157,9 @@ certainty. Not every run does: see [Limits](#limits).
 - **Strict.** Say "strict", "full STE", or "100%". The skill then also applies
   the word rules in [references/rules.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/references/rules.md).
 - **Rewrite.** Paste text instead of a topic. The skill keeps the content and
-  does not summarize it. It ends with one sentence that names the rules that
-  did the most work.
+  does not summarize it. It ends with one sentence of fewer than 20 words that
+  names the rules that did the most work. When the rewrite is for someone
+  else, the skill leaves the note out.
 
 ## What it enforces
 
@@ -172,7 +173,7 @@ certainty. Not every run does: see [Limits](#limits).
 - Names the reader may not know are explained from the text the first
   time, or marked as undefined. No guessed meanings.
 
-All of the rules are in [SKILL.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/SKILL.md), 72 lines.
+All of the rules are in [SKILL.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/SKILL.md), 77 lines.
 Read it before you install it.
 
 ## Use the rules inside your own skills
@@ -219,8 +220,6 @@ in [docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/do
   compacted. There, Claude kept using names that it had made up.
 - **It turns advice into a command.** "It is recommended that..." became a
   direct command in 4 of 4 test inputs that held a recommendation.
-- **Its closing note runs long.** In rewrite mode, the note broke the 25-word
-  limit in 6 of 11 rewrites.
 - **The samples are small.** Each eval ran 3 to 6 times, and each trigger
   prompt ran 3 times. Claude graded the outputs, not people.
 - **It is not STE compliance.** The skill does not use the official

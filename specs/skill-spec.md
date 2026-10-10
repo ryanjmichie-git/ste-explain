@@ -16,7 +16,7 @@ default, so that a tired reader can parse it in one pass.
 | --- | --- | --- |
 | Default (80%) | any triggering request | structure rules enforced; technical terms the topic needs are allowed |
 | Strict | user says "strict", "full STE", "100%" | also read references/rules.md; vocabulary discipline; minimum domain terms |
-| Rewrite | user supplies text instead of a topic | STE version of the same content; every fact kept; no summarizing; one-line change note |
+| Rewrite | user supplies text instead of a topic | STE version of the same content; every fact kept; no summarizing; one-line change note, left out when the output is for a reader other than the user |
 
 ## Trigger contract
 

@@ -9,6 +9,8 @@ Everything else in this repo exists to measure and improve it. Read
 - `python3 scripts/ste_lint.py <file>` — deterministic STE structure check
   (`--procedure`: 20 words for steps and warnings, 25 for notes and prose; `--json`; `--self-test`)
 - `python3 scripts/validate_skill.py` — frontmatter + size constraints
+- `python3 scripts/check_consistency.py` — README, manifests, spec, evals and
+  skill agree (rule count, line count, description, rule 7 wording, lint)
 - `python3 scripts/trigger_eval.py` — trigger evals via headless `claude -p`
   (3 runs × 20 queries). `--ref <git-ref>` pairs the old and new description
   in one batch; `--queries evals/trigger-heldout.json` runs the held-out set

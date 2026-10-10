@@ -595,6 +595,11 @@ def test_consistency_catches_every_fact():
     assert rc == 1 and "FAIL C3" in out, out
 
 
+def test_consistency_passes_on_repo():
+    rc, out = run_consistency(check_consistency.REPO)
+    assert rc == 0, out
+
+
 TESTS = [
     test_pair_rule,
     test_unpaired_floor,
@@ -618,6 +623,7 @@ TESTS = [
     test_consistency_passes_on_fixture,
     test_consistency_catches_rule_count,
     test_consistency_catches_every_fact,
+    test_consistency_passes_on_repo,
 ]
 
 
