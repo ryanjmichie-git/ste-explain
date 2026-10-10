@@ -116,6 +116,6 @@ Before you answer in strict mode, confirm:
    unknown actor.
 4. No word is used with two meanings. No two words name the same thing.
 5. No -ing form where a simple form works.
-6. No noun cluster longer than three words.
+6. No cluster of more than three nouns.
 7. No word from the delete-on-sight list.
 8. Conditions and warnings come before their instructions.

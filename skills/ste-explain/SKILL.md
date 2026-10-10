@@ -22,7 +22,12 @@ active. The goal is text a tired reader can parse in one pass.
   needs.
 - **Rewrite.** If the user supplies text rather than a topic, return the STE
   version. Keep every fact. Do not summarize or drop content unless asked.
-  End with one short sentence that names the rules that did the most work.
+
+After a rewrite, end with one sentence of fewer than 20 words that names the
+two or three rules that did the most work. Example: "The rules that did the
+most work were short sentences, active voice, and simple words." Do not list
+the words you changed. If the user will send the rewrite to someone else,
+leave the note out.
 
 ## Structure rules (apply always)
 
@@ -35,7 +40,7 @@ active. The goal is text a tired reader can parse in one pass.
    every time. Do not rotate synonyms for style.
 6. Use simple verb forms: past, present, future. Avoid -ing forms where a
    simple form works.
-7. Break up noun clusters longer than three words.
+7. Break up any cluster of more than three nouns.
 8. Keep articles ("the", "a") — do not write in telegraphic style.
 9. Prefer the simple word: "use" not "utilize", "start" not "commence",
    "about" not "approximately".
