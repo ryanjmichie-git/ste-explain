@@ -37,7 +37,7 @@ translation; proofreading for grammar only.
 4. Active voice; passive only in descriptions with an unknown actor.
 5. One meaning per word; one word per thing; no synonym rotation.
 6. Simple verb forms; minimal -ing forms.
-7. No noun clusters over three words.
+7. No clusters of more than three nouns.
 8. Articles kept; no telegraphic style.
 9. Vertical lists for more than three parallel items.
 10. Conditions and warnings before their instructions.

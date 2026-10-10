@@ -156,8 +156,9 @@ certainty. Not every run does: see [Limits](#limits).
   topic needs are allowed.
 - **Strict.** Say "strict", "full STE", or "100%". The skill then also applies
   the word rules in [references/rules.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/references/rules.md).
-- **Rewrite.** Paste text instead of a topic. The skill keeps every fact. It
-  ends with one sentence that names the rules that did the most work.
+- **Rewrite.** Paste text instead of a topic. The skill keeps the content and
+  does not summarize it. It ends with one sentence that names the rules that
+  did the most work.
 
 ## What it enforces
 
@@ -179,7 +180,7 @@ Read it before you install it.
 A skill that does a task fires every time you run that task. Put the
 structure rules in that skill, and its text follows them with no separate
 trigger. Good candidates are skills that post release notes or Slack updates,
-or that write runbooks and pull request descriptions. Copy the twelve rules
+or that write runbooks and pull request descriptions. Copy the thirteen rules
 from the [structure rules](https://github.com/ryanjmichie-git/ste-explain/blob/main/skills/ste-explain/SKILL.md#structure-rules-apply-always)
 in SKILL.md. The MIT license allows it.
 

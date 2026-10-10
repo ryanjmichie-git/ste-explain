@@ -32,13 +32,13 @@
         "All 8 facts from the fixture's fact list are present, each with its original certainty",
         "Zero hedge/filler words",
         "Output includes a one-line note on what changed",
-        "No noun cluster longer than three words"
+        "No cluster of more than three nouns"
       ],
       "grading_notes": [
         "Assertion 2: apply the certainty rule in the fixture. Fact 7 passes when the need for board approval is stated plainly and the expectation covers the whole clause or the timing (\"The agency expects the purchase to need board approval in the second quarter\"). It fails when a hedge adverb sits on the need (\"will probably need\", \"will likely need\").",
         "Assertion 3: about, in most cases, and expects carry source meaning and are not hedges.",
         "Assertion 3: judge hedge and filler words against the delete-on-sight list in skills/ste-explain/references/rules.md. A hedge adverb that changes the certainty of a fact (\"will probably need\") is charged to assertion 2 only.",
-        "Assertion 5: count real noun phrases. The linter's noun-cluster warnings include verbs and are only hints."
+        "Assertion 5: count nouns in a row. An adjective before three nouns does not make a cluster. The linter flags any four words in a row, verbs and adjectives included, so its warnings are only hints."
       ]
     },
     {
