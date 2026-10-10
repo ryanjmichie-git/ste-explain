@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_release  # noqa: E402
+import check_consistency  # noqa: E402
 import screen_blind  # noqa: E402
 import tabulate_eval  # noqa: E402
 import trigger_eval as te  # noqa: E402
@@ -522,6 +523,70 @@ def test_release_reports_invalid_plugin_json():
         assert "plugin.json" in msg, msg
 
 
+NEW_DESC = (
+    "Explains topics and rewrites text in the style of Simplified Technical "
+    "English: short sentences, active voice, one instruction per step. It keeps "
+    "the content and does not summarize it. It is not an official ASD-STE100 tool."
+)
+
+
+def consistency_fixture(readme_word="two", desc=NEW_DESC):
+    """Seven minimal files in the repo layout, consistent by construction."""
+    root = Path(tempfile.mkdtemp())
+    skill = (
+        "---\nname: x\ndescription: y\n---\n\n## Structure rules (apply always)\n\n"
+        "1. Keep sentences short.\n2. Break up any cluster of more than three nouns.\n\n"
+        "## Self-check\n\nRead your draft once.\n"
+    )
+    readme = (
+        f"All of the rules are in [SKILL.md](https://x/SKILL.md), "
+        f"{len(skill.splitlines())} lines.\r\nCopy the {readme_word} rules\r\n"
+    )
+    files = {
+        "skills/ste-explain/SKILL.md": skill,
+        "skills/ste-explain/references/rules.md": "6. No cluster of more than three nouns.\n",
+        "README.md": readme,
+        ".claude-plugin/plugin.json": json.dumps({"description": desc}),
+        ".claude-plugin/marketplace.json": json.dumps(
+            {"plugins": [{"description": desc}]}
+        ),
+        "specs/skill-spec.md": "7. No clusters of more than three nouns.\n",
+        "evals/evals.json": json.dumps(
+            {"evals": [{"assertions": ["No cluster of more than three nouns"]}]}
+        ),
+    }
+    for rel, text in files.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8", newline="")
+    return root
+
+
+def run_consistency(root):
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = check_consistency.main([str(root)])
+    return rc, buf.getvalue()
+
+
+def test_consistency_passes_on_fixture():
+    rc, out = run_consistency(consistency_fixture())
+    assert rc == 0 and "FAIL" not in out, out
+
+
+def test_consistency_catches_rule_count():
+    rc, out = run_consistency(consistency_fixture(readme_word="three"))
+    assert rc == 1 and "FAIL C1" in out, out
+
+
+def test_consistency_catches_every_fact():
+    bad = NEW_DESC.replace(
+        "one instruction per step.", "one instruction per step, and every fact kept."
+    )
+    rc, out = run_consistency(consistency_fixture(desc=bad))
+    assert rc == 1 and "FAIL C3" in out, out
+
+
 TESTS = [
     test_pair_rule,
     test_unpaired_floor,
@@ -541,6 +606,9 @@ TESTS = [
     test_release_refuses_version_not_above_release,
     test_release_refuses_checked_out_release,
     test_release_reports_invalid_plugin_json,
+    test_consistency_passes_on_fixture,
+    test_consistency_catches_rule_count,
+    test_consistency_catches_every_fact,
 ]
 
 
