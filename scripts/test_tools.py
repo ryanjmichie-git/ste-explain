@@ -17,11 +17,14 @@ import subprocess
 import sys
 import tempfile
 import threading
+import types
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "hooks"))
 import build_release  # noqa: E402
 import check_consistency  # noqa: E402
+import post_edit_validate as hook  # noqa: E402
 import screen_blind  # noqa: E402
 import tabulate_eval  # noqa: E402
 import trigger_eval as te  # noqa: E402
@@ -600,6 +603,54 @@ def test_consistency_passes_on_repo():
     assert rc == 0, out
 
 
+def hook_run(payload_text, check_rc, check_out="", skill_rc=0):
+    """Run the hook's main() on a payload, with the two subprocesses faked."""
+
+    def fake(cmd, **kwargs):
+        rc = skill_rc if Path(cmd[1]).name == "validate_skill.py" else check_rc
+        return subprocess.CompletedProcess(cmd, rc, stdout=check_out, stderr="")
+
+    err, real = io.StringIO(), hook.subprocess.run
+    hook.subprocess.run = fake
+    try:
+        with contextlib.redirect_stderr(err):
+            rc = hook.main(io.StringIO(payload_text))
+    finally:
+        hook.subprocess.run = real
+    return rc, err.getvalue()
+
+
+def test_hook_blocks_when_consistency_is_red():
+    payload = json.dumps({"tool_input": {"file_path": str(hook.REPO / "README.md")}})
+    rc, err = hook_run(payload, check_rc=1, check_out="FAIL C2 SKILL.md is 77 lines\n")
+    assert rc == 2 and "FAIL C2" in err, (rc, err)
+    rc, err = hook_run(payload, check_rc=0)
+    assert rc == 0, (rc, err)
+
+
+def test_hook_ignores_other_repos_readme():
+    payload = json.dumps({"tool_input": {"file_path": "C:\\other\\README.md"}})
+    rc, _ = hook_run(payload, check_rc=1, check_out="FAIL C2\n")
+    assert rc == 0
+
+
+def test_hook_validates_skill_without_check_consistency():
+    skill = str(hook.REPO / "skills" / "ste-explain" / "SKILL.md")
+    payload = json.dumps({"tool_input": {"file_path": skill}})
+    saved = sys.modules["check_consistency"]
+    sys.modules["check_consistency"] = types.ModuleType("check_consistency")
+    try:
+        rc, err = hook_run(payload, check_rc=0, skill_rc=1)
+    finally:
+        sys.modules["check_consistency"] = saved
+    assert rc == 2 and "platform constraints" in err, (rc, err)
+
+
+def test_hook_fails_open_on_garbage():
+    rc, _ = hook_run("garbage", check_rc=1)
+    assert rc == 0
+
+
 TESTS = [
     test_pair_rule,
     test_unpaired_floor,
@@ -624,6 +675,10 @@ TESTS = [
     test_consistency_catches_rule_count,
     test_consistency_catches_every_fact,
     test_consistency_passes_on_repo,
+    test_hook_blocks_when_consistency_is_red,
+    test_hook_ignores_other_repos_readme,
+    test_hook_validates_skill_without_check_consistency,
+    test_hook_fails_open_on_garbage,
 ]
 
 

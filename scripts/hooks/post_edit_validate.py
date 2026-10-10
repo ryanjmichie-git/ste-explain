@@ -17,12 +17,22 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 
 
-def main():
+def watched_files():
+    """The paths check_consistency.py watches, or none if it cannot be imported."""
     try:
-        payload = json.load(sys.stdin)
-        file_path = (payload.get("tool_input") or {}).get("file_path", "")
         sys.path.insert(0, str(REPO / "scripts"))
         from check_consistency import FILES
+
+        return FILES
+    except Exception:
+        return ()
+
+
+def main(stdin=None):
+    try:
+        payload = json.load(stdin or sys.stdin)
+        file_path = (payload.get("tool_input") or {}).get("file_path", "")
+        target = Path(file_path).resolve()
     except Exception:
         return 0
     norm = file_path.replace("\\", "/")
@@ -36,7 +46,7 @@ def main():
             sys.stderr.write("SKILL.md violates platform constraints — fix now:\n")
             sys.stderr.write(proc.stdout + proc.stderr)
             return 2
-    if any(norm == f or norm.endswith("/" + f) for f in FILES):
+    if any(target == (REPO / f).resolve() for f in watched_files()):
         proc = subprocess.run(
             [sys.executable, str(REPO / "scripts" / "check_consistency.py"), str(REPO)],
             capture_output=True,

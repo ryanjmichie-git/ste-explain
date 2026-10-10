@@ -14,8 +14,12 @@ Run $ARGUMENTS climb(s) (default 1). One climb is:
    explaining why over adding an ALL-CAPS MUST.
 3. **Edit minimally.** Propose the smallest change to
    `skills/ste-explain/SKILL.md` (or `references/rules.md`), show me the
-   diff with one sentence of reasoning, then apply it. Prefer deleting a
-   confusing line over adding a clarifying one.
+   diff with one sentence of reasoning, then save it as
+   `workspace/iteration-N/arms/arm-b.patch`. Prefer deleting a confusing
+   line over adding a clarifying one. Apply and revert arms with `git apply`
+   and `git checkout -- skills/`, not the Edit tool: the post-edit hook
+   checks README's SKILL.md line count on every Edit, and only the kept
+   change should update README.
 4. **Re-measure.** Run /eval as a fresh iteration and as a paired batch:
    arm-a is the committed text, arm-b is the edit. Spawn a
    `red-team-reviewer` subagent on the new skill text in parallel.
