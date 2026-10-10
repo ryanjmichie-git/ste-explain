@@ -351,7 +351,15 @@ def test_tabulate_counts_only_true():
     finally:
         sys.argv = argv
         shutil.rmtree(root, ignore_errors=True)
-    assert "  4  PFPPP  lint 0" in buf.getvalue(), buf.getvalue()
+    assert "  4  PFPPP  lint 0  note 0/1" in buf.getvalue(), buf.getvalue()
+
+
+def test_tabulate_note_column():
+    long = " ".join(["word"] * 30) + "."
+    assert tabulate_eval.note_over(f"Stop the pump.\n\nTurn it on.\n\n{long}\n", False)
+    assert not tabulate_eval.note_over(
+        f"{long}\n\nTurn it on.\n\nStop the pump.\n", False
+    )
 
 
 def git(repo, *args):
@@ -598,6 +606,7 @@ TESTS = [
     test_print_survives_cp1252,
     test_tally_single_vote_and_strings,
     test_tabulate_counts_only_true,
+    test_tabulate_note_column,
     test_release_ships_only_plugin_files,
     test_release_refuses_version_mismatch,
     test_release_chains_and_skips_no_change,

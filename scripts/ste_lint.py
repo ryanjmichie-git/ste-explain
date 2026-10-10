@@ -210,13 +210,16 @@ def noun_cluster_spans(sentence: str):
     return spans
 
 
-def lint_text(text: str, procedure: bool = False):
-    errors, warnings = [], []
-
-    # YAML frontmatter, fenced code blocks, and table rows are exempt.
+def strip_exempt(text: str) -> str:
+    """Remove what the linter ignores: YAML frontmatter, fenced code, table rows."""
     text = re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.DOTALL)
     text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-    text = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("|"))
+    return "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("|"))
+
+
+def lint_text(text: str, procedure: bool = False):
+    errors, warnings = [], []
+    text = strip_exempt(text)
 
     # --procedure: a step (list item) and the command sentence of a Warning
     # or Caution take the 20-word limit. A note, a reason after a warning

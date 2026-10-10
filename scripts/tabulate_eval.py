@@ -6,17 +6,19 @@ Layout: workspace/iteration-N/<eval>/<arm>/run-K/{output.md,grading.json}.
 batch. One letter per assertion row: P pass (a JSON true), F fail. A grading
 file that does not have exactly 5 rows is flagged with "!" and only its first
 5 rows count. Points count every run present, so name supplementary runs when
-you report.
+you report. "note k/n" counts the runs whose last paragraph (the closing note
+in rewrite mode) holds a lint error.
 
 Usage: python3 scripts/tabulate_eval.py workspace/iteration-N
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ste_lint import lint_text  # noqa: E402
+from ste_lint import lint_text, strip_exempt  # noqa: E402
 
 PROCEDURE_EVALS = {"strict-bike-chain", "etl-runbook"}
 EVAL_ORDER = [
@@ -27,6 +29,13 @@ EVAL_ORDER = [
     "jargon-translation",
     "coined-jargon",
 ]
+
+
+def note_over(text: str, procedure: bool) -> bool:
+    """True when a lint error sits in the last paragraph of the output."""
+    paragraphs = [p for p in re.split(r"\n\s*\n", strip_exempt(text)) if p.strip()]
+    errors, _ = lint_text(text, procedure=procedure)
+    return any(e.startswith(f"para {len(paragraphs)}:") for e in errors)
 
 
 def main():
@@ -41,17 +50,19 @@ def main():
         )
         for arm in arms:
             runs = sorted(arm.glob("run-*"), key=lambda p: int(p.name.split("-")[1]))
-            marks, lint, pts = [], [], 0
+            marks, lint, pts, noted, outputs = [], [], 0, 0, 0
             for run in runs:
                 out = run / "output.md"
                 if not out.exists():
                     marks.append("no-output")
                     lint.append("-")
                     continue
-                errors, _ = lint_text(
-                    out.read_text(encoding="utf-8"), procedure=ev in PROCEDURE_EVALS
-                )
+                text = out.read_text(encoding="utf-8")
+                procedure = ev in PROCEDURE_EVALS
+                errors, _ = lint_text(text, procedure=procedure)
                 lint.append(str(len(errors)))
+                outputs += 1
+                noted += note_over(text, procedure)
                 grading = run / "grading.json"
                 if not grading.exists():
                     marks.append("ungraded")
@@ -66,7 +77,7 @@ def main():
             if marks:
                 print(
                     f"{ev:20s} {arm.name:11s} {pts:>3}  {' '.join(marks)}  "
-                    f"lint {'/'.join(lint)}"
+                    f"lint {'/'.join(lint)}  note {noted}/{outputs}"
                 )
                 totals[arm.name] = totals.get(arm.name, 0) + pts
     for arm, pts in sorted(totals.items()):
