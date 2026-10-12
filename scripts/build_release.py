@@ -16,7 +16,13 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-SHIPPED = (".claude-plugin/plugin.json", "skills/ste-explain", "README.md", "LICENSE")
+SHIPPED = (
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/icon.png",
+    "skills/ste-explain",
+    "README.md",
+    "LICENSE",
+)
 
 
 class ReleaseError(Exception):

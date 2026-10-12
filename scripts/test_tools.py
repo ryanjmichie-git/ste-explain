@@ -371,6 +371,13 @@ def git(repo, *args):
     ).stdout.strip()
 
 
+TINY_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06"
+    b"\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01"
+    b"\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
 def release_repo(repo, version):
     """A temp repo with plugin files and dev files, tagged v0.1.8."""
     files = {
@@ -389,6 +396,7 @@ def release_repo(repo, version):
     for rel, text in files.items():
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         (repo / rel).write_text(text, encoding="utf-8")
+    (repo / ".claude-plugin/icon.png").write_bytes(TINY_PNG)
     git(repo, "init", "-q", "-b", "main")
     git(repo, "config", "user.name", "t")
     git(repo, "config", "user.email", "t@t")
@@ -404,6 +412,7 @@ def test_release_ships_only_plugin_files():
         build_release.build("v0.1.8", repo)
         files = git(repo, "ls-tree", "-r", "--name-only", "release").splitlines()
         assert files == [
+            ".claude-plugin/icon.png",
             ".claude-plugin/plugin.json",
             "LICENSE",
             "README.md",
