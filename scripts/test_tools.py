@@ -472,7 +472,7 @@ def test_release_builds_tag_after_main_moves():
         git(repo, "commit", "-q", "-am", "docs after the tag")
         build_release.build("v0.1.8", repo)
         files = git(repo, "ls-tree", "-r", "--name-only", "release").splitlines()
-        assert len(files) == 5 and "CLAUDE.md" not in files, files
+        assert len(files) == 6 and "CLAUDE.md" not in files, files
         readme = git(repo, "show", "release:README.md")
         assert readme == "readme", readme
 
