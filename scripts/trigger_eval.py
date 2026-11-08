@@ -1,18 +1,29 @@
 #!/usr/bin/env python3
 """Measure whether the skill triggers, using headless Claude Code sessions.
 
-For each query, runs `claude -p` from an empty temp dir with a copy of this
-plugin loaded via --plugin-dir and only project settings (so the user's own
-plugins do not compete). A run counts as triggered if the session calls the
-Skill tool with this plugin's ste-explain skill at any point.
+For each query, runs `claude -p` from its own empty temp dir with a copy of
+this plugin loaded via --plugin-dir and only project settings (so the user's
+own plugins do not compete). A run counts as triggered if the session calls
+the Skill tool with this plugin's ste-explain skill at any point.
 
 The plugin is always copied to a neutral temp dir first. A plugin path that
 contains "ste-explain" leaks into the model's behavior and inflates results.
+
+Isolation. Every session gets the switches that keep the user's CLAUDE.md,
+auto memory, synced claude.ai skills, MCP servers and Chrome out, and none of
+the parent's CLAUDE* environment variables (a session started from inside
+Claude Code inherits CLAUDECODE, CLAUDE_EFFORT and more). With --token-file
+(a token from `claude setup-token`), every session also gets its own empty
+CLAUDE_CONFIG_DIR, so no user state at all, usage counts included, reaches it.
+A session whose init event shows another ste-explain copy, a synced skill, an
+MCP server, another model than --model, or other skills or plugins than the
+first session of its variant stops the batch at once (exit 2).
 
 Usage:
   python3 scripts/trigger_eval.py [--runs 3] [--max-turns 6] [--workers 4]
       [--queries evals/trigger-evals.json]
       [--out workspace/trigger-results.jsonl] [--ref GITREF] [--model MODEL]
+      [--token-file PATH]
 
 --ref GITREF runs a paired comparison in one batch: "old" uses SKILL.md from
 GITREF, "new" uses the working tree. Trigger rates drift from day to day
@@ -22,17 +33,19 @@ description change only with --ref, never against an earlier run.
 Use at least 6 turns: with fewer, a query that points at a file can end on
 the file search before the model decides on the skill.
 
-A session fails if it produces no assistant message, or if it times out or
-its stream breaks before the skill call. A failed session is retried once
-and then left out of the counts. With --ref, the same run of the same query
-is then left out of both variants.
+A session fails if it produces no assistant message, if it times out or its
+stream breaks, or if it ends on an error result (a usage limit, for example;
+running out of turns is a real end), unless the skill call came first. A
+failed session is retried once and then left out of the counts. With --ref,
+the same run of the same query is then left out of both variants. Run 1
+starts each query with "new", run 2 with "old", and so on.
 
 Exit codes:
   0  pass. Without --ref: should-trigger >= 22/30 and false triggers <= 2/30,
      scaled to the query file. With --ref: "new" is at most 2 should-trigger
      hits below "old" and has at most 1 more false trigger.
   1  fail.
-  2  invalid run: another ste-explain copy was loaded, more than 5% of the
+  2  invalid run: a contaminated session (see Isolation), more than 5% of the
      sessions failed, or the script itself failed (a bad --ref, for example).
 """
 
@@ -43,6 +56,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import types
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -50,6 +65,11 @@ REPO = Path(__file__).resolve().parent.parent
 SKILL_REL = "skills/ste-explain/SKILL.md"
 OWN_SKILL = {"ste-explain:ste-explain", "ste-explain"}
 TIMEOUT = 600
+ISOLATION_ENV = {
+    "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
+}
 
 
 def make_plugin_copy(ref=None):
@@ -81,10 +101,55 @@ def description(plugin_dir):
     return ""
 
 
-def run_claude(cmd, cwd):
+def session_env(token, config_dir):
+    """The parent env without its CLAUDE* session variables, plus the switches."""
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.upper().startswith("CLAUDE") or k.upper() == "CLAUDE_CONFIG_DIR"
+    }
+    env.update(ISOLATION_ENV)
+    if token:
+        env["CLAUDE_CONFIG_DIR"] = config_dir
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = token
+    return env
+
+
+def norm(path):
+    return os.path.normcase(os.path.realpath(path))
+
+
+def contamination(init, plugin_dir, batch):
+    """Return why this init event shows a session that is not clean, or ""."""
+    plugins = init.get("plugins") or []
+    own = [p for p in plugins if str(p.get("name", "")).split("@")[0] == "ste-explain"]
+    if len(own) != 1 or norm(own[0].get("path", "")) != norm(plugin_dir):
+        return f"ste-explain plugins {own}"
+    skills = init.get("skills") or []
+    synced = [s for s in skills if s.startswith("anthropic-skills:")]
+    if synced:
+        return f"synced claude.ai skills {synced}"
+    if init.get("mcp_servers"):
+        return f"MCP servers {init['mcp_servers']}"
+    if batch.model and init.get("model") != batch.model:
+        return f"model {init.get('model')!r}, not {batch.model!r}"
+    snap = (
+        sorted(skills),
+        sorted(norm(p.get("path", "")) for p in plugins),
+        init.get("model"),
+    )
+    with batch.lock:
+        first = batch.snapshots.setdefault(norm(plugin_dir), snap)
+    if snap != first:
+        return "skills, plugins or model differ from the first session"
+    return ""
+
+
+def run_claude(cmd, cwd, env):
     p = subprocess.Popen(
         cmd,
         cwd=cwd,
+        env=env,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
@@ -110,7 +175,57 @@ def run_claude(cmd, cwd):
         return "timeout", out
 
 
-def run_one(query, plugin_dir, max_turns, cwd, model):
+def session(cmd, cwd, env, plugin_dir, batch):
+    """Run one session and read its stream."""
+    skills, loaded, reply, n_assistant = [], [], "", 0
+    init, result, contaminated = {}, {}, ""
+    try:
+        rc, out = run_claude(cmd, cwd, env)
+        for line in out.splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            if event.get("type") == "system" and event.get("subtype") == "init":
+                init = event
+                loaded = [s for s in event.get("skills", []) if "ste-explain" in s]
+                contaminated = contamination(event, plugin_dir, batch)
+            if event.get("type") == "assistant":
+                n_assistant += 1
+                for block in event["message"]["content"]:
+                    if block.get("type") == "tool_use" and block["name"] == "Skill":
+                        skills.append(block["input"].get("skill") or "")
+            if event.get("type") == "result":
+                result = event
+                reply = (event.get("result") or "")[:300]
+    except (OSError, KeyError, TypeError, AttributeError) as e:
+        rc = f"error: {e!r}"
+    triggered = any(s in OWN_SKILL for s in skills)
+    # A string rc is a timeout or a broken stream. An error result is a usage
+    # limit or an API error; running out of turns is a real end. Such a
+    # session counts only if the skill call came first.
+    failed = isinstance(rc, str) or (
+        bool(result.get("is_error")) and result.get("subtype") != "error_max_turns"
+    )
+    return {
+        "triggered": triggered,
+        "valid": n_assistant > 0 and not contaminated and (triggered or not failed),
+        "contaminated": contaminated,
+        "skills": skills,
+        "loaded": loaded,
+        "plugins": init.get("plugins") or [],
+        "model": init.get("model") or "",
+        "version": init.get("claude_code_version") or "",
+        "subtype": result.get("subtype") or "",
+        "is_error": bool(result.get("is_error")),
+        "reply": reply,
+        "rc": rc,
+    }
+
+
+def run_one(query, plugin_dir, batch):
     cmd = [
         "claude",
         "-p",
@@ -119,53 +234,53 @@ def run_one(query, plugin_dir, max_turns, cwd, model):
         str(plugin_dir),
         "--setting-sources",
         "project",
+        "--settings",
+        str(batch.settings),
+        "--strict-mcp-config",
+        "--no-chrome",
         "--output-format",
         "stream-json",
         "--verbose",
         "--max-turns",
-        str(max_turns),
+        str(batch.max_turns),
         "--no-session-persistence",
     ]
-    if model:
-        cmd += ["--model", model]
-    res = {}
+    if batch.model:
+        cmd += ["--model", batch.model]
+    res = None
     for _ in range(2):  # one retry for a session that produced nothing
-        skills, loaded, reply, used_model, n_assistant = [], [], "", "", 0
+        if batch.stop.is_set():
+            break
+        cwd = tempfile.mkdtemp()
+        config = tempfile.mkdtemp() if batch.token else None
         try:
-            rc, out = run_claude(cmd, cwd)
-            for line in out.splitlines():
-                try:
-                    event = json.loads(line)
-                except ValueError:
-                    continue
-                if not isinstance(event, dict):
-                    continue
-                if event.get("type") == "system" and event.get("subtype") == "init":
-                    loaded = [s for s in event.get("skills", []) if "ste-explain" in s]
-                    used_model = event.get("model") or ""
-                if event.get("type") == "assistant":
-                    n_assistant += 1
-                    for block in event["message"]["content"]:
-                        if block.get("type") == "tool_use" and block["name"] == "Skill":
-                            skills.append(block["input"].get("skill") or "")
-                if event.get("type") == "result":
-                    reply = (event.get("result") or "")[:300]
-        except (OSError, KeyError, TypeError, AttributeError) as e:
-            rc = f"error: {e!r}"
-        triggered = any(s in OWN_SKILL for s in skills)
-        # A string rc is a timeout or a broken stream. Such a session counts
-        # only if the skill call came first.
-        res = {
-            "triggered": triggered,
-            "valid": n_assistant > 0 and (triggered or not isinstance(rc, str)),
-            "skills": skills,
-            "loaded": loaded,
-            "model": used_model,
-            "reply": reply,
-            "rc": rc,
-        }
+            res = session(
+                cmd, cwd, session_env(batch.token, config), plugin_dir, batch
+            )
+        finally:
+            shutil.rmtree(cwd, ignore_errors=True)
+            if config:
+                shutil.rmtree(config, ignore_errors=True)
+        if res["contaminated"]:
+            batch.stop.set()
+            break
         if res["valid"]:
             break
+    if res is None:  # the batch stopped before this session started
+        res = {
+            "triggered": False,
+            "valid": False,
+            "contaminated": "",
+            "skills": [],
+            "loaded": [],
+            "plugins": [],
+            "model": "",
+            "version": "",
+            "subtype": "",
+            "is_error": False,
+            "reply": "",
+            "rc": "skipped",
+        }
     return res
 
 
@@ -194,6 +309,11 @@ def main():
         "--ref", help="git ref of the old SKILL.md; runs old and new paired"
     )
     ap.add_argument("--model", help="passed to claude -p; default is the CLI default")
+    ap.add_argument(
+        "--token-file",
+        help="file with a `claude setup-token` token; each session then gets "
+        "its own empty CLAUDE_CONFIG_DIR",
+    )
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         # A redirected stdout on Windows is cp1252. A query can hold more.
@@ -220,20 +340,35 @@ def run(args, tmp):
         tmp.append(variants["old"].parent)
     for v in sorted(variants):
         print(f"{v} description: {description(variants[v])}")
-    cwd = tempfile.mkdtemp()
-    tmp.append(cwd)
-    jobs = [(r, v, q) for r in range(args.runs) for q in queries for v in variants]
+    token = ""
+    if args.token_file:
+        token = Path(args.token_file).read_text(encoding="utf-8").strip()
+    settings_dir = tempfile.mkdtemp()
+    tmp.append(settings_dir)
+    settings = Path(settings_dir) / "settings.json"
+    settings.write_text(json.dumps({"syncClaudeAiSkills": False}), encoding="utf-8")
+    batch = types.SimpleNamespace(
+        max_turns=args.max_turns,
+        model=args.model,
+        token=token,
+        settings=settings,
+        lock=threading.Lock(),
+        snapshots={},
+        stop=threading.Event(),
+    )
+    order = list(variants)
+    jobs = [
+        (r, v, q)
+        for r in range(args.runs)
+        for q in queries
+        for v in (order if r % 2 == 0 else order[::-1])
+    ]
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     rows = []
     with ThreadPoolExecutor(args.workers) as ex, out.open("w", encoding="utf-8") as f:
-        results = ex.map(
-            lambda j: run_one(
-                j[2]["query"], variants[j[1]], args.max_turns, cwd, args.model
-            ),
-            jobs,
-        )
+        results = ex.map(lambda j: run_one(j[2]["query"], variants[j[1]], batch), jobs)
         for (r, v, q), res in zip(jobs, results):
             row = {"run": r, "variant": v, **q, **res}
             rows.append(row)
@@ -268,9 +403,19 @@ def run(args, tmp):
 
     invalid = [x for x in rows if not x["valid"]]
     models = sorted({x["model"] for x in rows if x["model"]})
+    versions = sorted({x["version"] for x in rows if x["version"]})
     print(f"\nmodel(s): {', '.join(models) or 'not reported'}")
+    print(f"Claude Code version(s): {', '.join(versions) or 'not reported'}")
     print(f"invalid sessions (left out): {len(invalid)}/{len(rows)}")
     print(f"wrote {out}")
+    bad = [x for x in rows if x["contaminated"]]
+    if bad:
+        x = bad[0]
+        print(
+            f"INVALID RUN: contaminated session ({x['variant']}, "
+            f"{x['query'].splitlines()[0][:40]!r}): {x['contaminated']}"
+        )
+        return 2
     others = {s for x in rows for s in x["loaded"] if s not in OWN_SKILL}
     if others:
         print(f"INVALID RUN: other ste-explain copies loaded: {sorted(others)}")

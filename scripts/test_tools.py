@@ -12,6 +12,7 @@ Usage: python3 scripts/test_tools.py
 import contextlib
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -42,16 +43,36 @@ TWENTY = [{"query": f"P{i}", "should_trigger": True} for i in range(1, 11)] + [
 ]
 OLD_ALL = {("P1", "old"), ("P2", "old"), ("P3", "old")}
 NEW_ALL = {("P1", "new"), ("P2", "new"), ("P3", "new")}
+PLUGIN_DIR = "__PLUGIN_DIR__"
+TOKEN = "SECRET-TOKEN-123"
 
 
-def stream(skill_calls=(), loaded=(OWN,), assistant=True, content=None):
-    """Stream-json text of one session, with the events trigger_eval reads."""
+def stream(
+    skill_calls=(),
+    loaded=(OWN,),
+    assistant=True,
+    content=None,
+    plugins=None,
+    mcp=(),
+    model="fake-model",
+    is_error=False,
+    subtype="success",
+):
+    """Stream-json text of one session, with the events trigger_eval reads.
+
+    The fake run_claude replaces PLUGIN_DIR with the session's --plugin-dir.
+    """
+    if plugins is None:
+        plugins = [{"name": "ste-explain", "path": PLUGIN_DIR}]
     events = [
         {
             "type": "system",
             "subtype": "init",
             "skills": list(loaded) + ["other:thing"],
-            "model": "fake-model",
+            "plugins": plugins,
+            "mcp_servers": list(mcp),
+            "model": model,
+            "claude_code_version": "9.9.9",
         }
     ]
     if assistant:
@@ -62,7 +83,14 @@ def stream(skill_calls=(), loaded=(OWN,), assistant=True, content=None):
                 for s in skill_calls
             ]
         events.append({"type": "assistant", "message": {"content": content}})
-    events.append({"type": "result", "result": "reply text"})
+    events.append(
+        {
+            "type": "result",
+            "subtype": subtype,
+            "is_error": is_error,
+            "result": "reply text",
+        }
+    )
     return "\n".join(json.dumps(e) for e in events)
 
 
@@ -87,9 +115,10 @@ def scenario(
     """Run trigger_eval.main() with a fake run_claude.
 
     behavior(query, variant, nth_call) returns stream text, or (rc, text).
-    Returns code, rows, text, calls, and leftover (temp dirs that remain).
+    Returns code, rows, text, calls, leftover (temp dirs that remain), and
+    seen (one dict per session start: cmd, cwd, env, and what existed then).
     """
-    variant_of, calls, made, lock = {}, {}, [], threading.Lock()
+    variant_of, calls, made, seen, lock = {}, {}, [], [], threading.Lock()
     real_copy, real_run, real_mkdtemp = (
         te.make_plugin_copy,
         te.run_claude,
@@ -104,14 +133,33 @@ def scenario(
         variant_of[str(d)] = "old" if ref else "new"
         return d
 
-    def fake_run_claude(cmd, cwd):
+    def fake_run_claude(cmd, cwd, env=None):
+        env = env or {}
         query = cmd[2]
-        variant = variant_of[cmd[cmd.index("--plugin-dir") + 1]]
+        plugin_dir = cmd[cmd.index("--plugin-dir") + 1]
+        variant = variant_of[plugin_dir]
+        settings = cmd[cmd.index("--settings") + 1] if "--settings" in cmd else None
+        config = env.get("CLAUDE_CONFIG_DIR")
         with lock:
             calls[(query, variant)] = calls.get((query, variant), 0) + 1
             nth = calls[(query, variant)]
+            seen.append(
+                {
+                    "query": query,
+                    "variant": variant,
+                    "cmd": list(cmd),
+                    "cwd": cwd,
+                    "env": dict(env),
+                    "cwd_exists": Path(cwd).is_dir(),
+                    "config_exists": bool(config) and Path(config).is_dir(),
+                    "settings": json.loads(Path(settings).read_text(encoding="utf-8"))
+                    if settings
+                    else None,
+                }
+            )
         res = behavior(query, variant, nth)
-        return res if isinstance(res, tuple) else (0, res)
+        rc, text = res if isinstance(res, tuple) else (0, res)
+        return rc, text.replace(PLUGIN_DIR, json.dumps(plugin_dir)[1:-1])
 
     def mkdtemp(*a, **k):
         d = real_mkdtemp(*a, **k)
@@ -151,6 +199,7 @@ def scenario(
         "text": "" if out_stream else buf.getvalue(),
         "calls": calls,
         "leftover": [d for d in made if Path(d).exists()],
+        "seen": seen,
     }
 
 
@@ -219,7 +268,7 @@ def test_other_copy():
         return stream(calls, loaded=(OWN, "anthropic-skills:ste-explain"))
 
     r = scenario(confounded)
-    assert r["code"] == 2 and "other ste-explain copies loaded" in r["text"], r["text"]
+    assert r["code"] == 2 and "contaminated session" in r["text"], r["text"]
 
 
 def test_paired_drops_both_sides():
@@ -296,6 +345,126 @@ def test_print_survives_cp1252():
     out.flush()
     assert r["code"] == 0, raw.getvalue()
     assert b"P\\u21921" in raw.getvalue(), raw.getvalue()
+
+
+def test_session_isolation():
+    # Each session gets its own cwd and config dir, the token, the isolation
+    # switches, and none of the parent's Claude Code session variables. The
+    # token never reaches stdout or the rows.
+    work = Path(tempfile.mkdtemp())
+    tok = work / "token"
+    tok.write_text(TOKEN + "\n", encoding="utf-8")
+    saved = {k: os.environ.get(k) for k in ("CLAUDE_EFFORT", "CLAUDECODE")}
+    os.environ.update({"CLAUDE_EFFORT": "max", "CLAUDECODE": "1"})
+    try:
+        r = scenario(good, args=["--token-file", str(tok)])
+        plain = scenario(good)
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        shutil.rmtree(work, ignore_errors=True)
+    assert r["code"] == 0, r["text"]
+    assert len(r["seen"]) == 10
+    for s in r["seen"]:
+        assert {"--strict-mcp-config", "--no-chrome"} <= set(s["cmd"]), s["cmd"]
+        assert s["settings"] == {"syncClaudeAiSkills": False}, s["settings"]
+        env = s["env"]
+        assert env.get("CLAUDE_CODE_DISABLE_CLAUDE_MDS") == "1", env
+        assert env.get("CLAUDE_CODE_DISABLE_AUTO_MEMORY") == "1", env
+        assert env.get("ENABLE_CLAUDEAI_MCP_SERVERS") == "false", env
+        assert "CLAUDE_EFFORT" not in env and "CLAUDECODE" not in env
+        assert env.get("CLAUDE_CODE_OAUTH_TOKEN") == TOKEN
+        assert s["cwd_exists"] and s["config_exists"], s
+    assert len({s["cwd"] for s in r["seen"]}) == 10
+    assert len({s["env"]["CLAUDE_CONFIG_DIR"] for s in r["seen"]}) == 10
+    assert TOKEN not in r["text"] and TOKEN not in json.dumps(r["rows"])
+    assert r["leftover"] == [], r["leftover"]
+    # Without --token-file the session keeps the user's login.
+    assert plain["code"] == 0, plain["text"]
+    for s in plain["seen"]:
+        assert "CLAUDE_CODE_OAUTH_TOKEN" not in s["env"]
+        assert s["env"].get("CLAUDE_CODE_DISABLE_CLAUDE_MDS") == "1"
+
+
+def test_contamination_stops_at_once():
+    # A session that loads a second ste-explain copy stops the batch: exit 2,
+    # no retry, and no later session starts.
+    second = [
+        {"name": "ste-explain", "path": PLUGIN_DIR},
+        {"name": "ste-explain", "path": "C:/elsewhere/ste-explain"},
+    ]
+
+    def behavior(q, v, nth):
+        if (q, v) == ("P2", "new"):
+            return stream([OWN], plugins=second)
+        return good(q, v, nth)
+
+    r = scenario(behavior, workers="1")
+    assert r["code"] == 2 and "contaminated session" in r["text"], r["text"]
+    assert r["calls"][("P2", "new")] == 1, r["calls"]
+    assert ("N2", "old") not in r["calls"], r["calls"]
+
+
+def test_contamination_kinds():
+    # A synced claude.ai skill, an MCP server, a model other than --model, or
+    # a session unlike the first one of its variant: each makes the run invalid.
+    def late_skill(q, v, nth):
+        extra = (OWN, "late:skill") if q == "N1" else (OWN,)
+        return stream([OWN] if q.startswith("P") else [], loaded=extra)
+
+    cases = [
+        (lambda q, v, nth: stream([OWN], loaded=(OWN, "anthropic-skills:docx")), []),
+        (lambda q, v, nth: stream([OWN], mcp=[{"name": "x", "status": "ok"}]), []),
+        (lambda q, v, nth: stream([OWN], model="other-model"), ["--model", "fake-model"]),
+        (late_skill, []),
+    ]
+    for behavior, args in cases:
+        r = scenario(behavior, args=args, workers="1")
+        assert r["code"] == 2 and "contaminated session" in r["text"], r["text"]
+    # Control: the pinned model matches.
+    r = scenario(good, args=["--model", "fake-model"])
+    assert r["code"] == 0, r["text"]
+
+
+def test_result_error():
+    # An error result (a usage limit, for example) is a failed session, not a
+    # miss. Running out of turns is a real end, so that session counts. A skill
+    # call before the error counts as a trigger.
+    def behavior(q, v, nth):
+        if (q, v) == ("P1", "new"):
+            return stream([], is_error=True)
+        if (q, v) == ("P2", "new"):
+            return stream([OWN], is_error=True)
+        if (q, v) == ("N1", "new"):
+            return stream([], is_error=True, subtype="error_max_turns")
+        return good(q, v, nth)
+
+    r = scenario(behavior, queries=TWENTY)
+    row = {(x["query"], x["variant"]): x for x in r["rows"]}
+    assert row[("P1", "new")]["valid"] is False and r["calls"][("P1", "new")] == 2
+    assert row[("P2", "new")]["valid"] and row[("P2", "new")]["triggered"]
+    assert row[("N1", "new")]["valid"] and row[("N1", "new")]["subtype"] == (
+        "error_max_turns"
+    )
+    p3 = row[("P3", "new")]
+    assert p3["version"] == "9.9.9" and p3["is_error"] is False, p3
+    assert p3["plugins"][0]["name"] == "ste-explain", p3
+    assert r["code"] == 0, r["text"]
+
+
+def test_variant_order_alternates():
+    # Run 1 starts each query with new, run 2 with old.
+    r = scenario(good, queries=FIVE[:1], args=["--runs", "2"], workers="1")
+    order = [(s["query"], s["variant"]) for s in r["seen"]]
+    assert order == [
+        ("P1", "new"),
+        ("P1", "old"),
+        ("P1", "old"),
+        ("P1", "new"),
+    ], order
 
 
 def tally_text(graders, key):
@@ -669,6 +838,11 @@ TESTS = [
     test_timeout_and_broken_stream,
     test_crash_is_invalid_run,
     test_print_survives_cp1252,
+    test_session_isolation,
+    test_contamination_stops_at_once,
+    test_contamination_kinds,
+    test_result_error,
+    test_variant_order_alternates,
     test_tally_single_vote_and_strings,
     test_tabulate_counts_only_true,
     test_tabulate_note_column,
