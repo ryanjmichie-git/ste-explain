@@ -12,12 +12,16 @@ contains "ste-explain" leaks into the model's behavior and inflates results.
 Isolation. Every session gets the switches that keep the user's CLAUDE.md,
 auto memory, synced claude.ai skills, MCP servers and Chrome out, and none of
 the parent's CLAUDE* environment variables (a session started from inside
-Claude Code inherits CLAUDECODE, CLAUDE_EFFORT and more). With --token-file
-(a token from `claude setup-token`), every session also gets its own empty
-CLAUDE_CONFIG_DIR, so no user state at all, usage counts included, reaches it.
-A session whose init event shows another ste-explain copy, a synced skill, an
-MCP server, another model than --model, or other skills or plugins than the
-first session of its variant stops the batch at once (exit 2).
+Claude Code inherits CLAUDECODE, CLAUDE_EFFORT and more). Every session runs
+with --permission-mode default and CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1. With
+--token-file (a token from `claude setup-token`, or the saved message that
+holds it), every session also gets its own empty CLAUDE_CONFIG_DIR, so no
+user state at all, usage counts included, reaches it. The parent's
+ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN are then dropped, because either
+one would replace the token. A session whose init event shows another
+ste-explain copy, a synced skill, an MCP server, another model than --model,
+or other skills, plugins or permission mode than the first session of its
+variant stops the batch at once (exit 2).
 
 Usage:
   python3 scripts/trigger_eval.py [--runs 3] [--max-turns 6] [--workers 4]
@@ -52,6 +56,7 @@ Exit codes:
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -69,6 +74,7 @@ ISOLATION_ENV = {
     "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
+    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
 }
 
 
@@ -101,6 +107,15 @@ def description(plugin_dir):
     return ""
 
 
+def read_token(path):
+    try:
+        text = Path(path).read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        raise ValueError("--token-file must be UTF-8 text") from None
+    found = re.search(r"sk-ant-oat01-[A-Za-z0-9_-]+", text)
+    return found.group(0) if found else text.strip()
+
+
 def session_env(token, config_dir):
     """The parent env without its CLAUDE* session variables, plus the switches."""
     env = {
@@ -110,6 +125,9 @@ def session_env(token, config_dir):
     }
     env.update(ISOLATION_ENV)
     if token:
+        for k in list(env):
+            if k.upper() in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
+                del env[k]
         env["CLAUDE_CONFIG_DIR"] = config_dir
         env["CLAUDE_CODE_OAUTH_TOKEN"] = token
     return env
@@ -137,11 +155,12 @@ def contamination(init, plugin_dir, batch):
         sorted(skills),
         sorted(norm(p.get("path", "")) for p in plugins),
         init.get("model"),
+        init.get("permissionMode"),
     )
     with batch.lock:
         first = batch.snapshots.setdefault(norm(plugin_dir), snap)
     if snap != first:
-        return "skills, plugins or model differ from the first session"
+        return "skills, plugins, model or permission mode differ from the first session"
     return ""
 
 
@@ -238,6 +257,8 @@ def run_one(query, plugin_dir, batch):
         str(batch.settings),
         "--strict-mcp-config",
         "--no-chrome",
+        "--permission-mode",
+        "default",
         "--output-format",
         "stream-json",
         "--verbose",
@@ -340,9 +361,7 @@ def run(args, tmp):
         tmp.append(variants["old"].parent)
     for v in sorted(variants):
         print(f"{v} description: {description(variants[v])}")
-    token = ""
-    if args.token_file:
-        token = Path(args.token_file).read_text(encoding="utf-8").strip()
+    token = read_token(args.token_file) if args.token_file else ""
     settings_dir = tempfile.mkdtemp()
     tmp.append(settings_dir)
     settings = Path(settings_dir) / "settings.json"

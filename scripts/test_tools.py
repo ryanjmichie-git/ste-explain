@@ -57,6 +57,7 @@ def stream(
     model="fake-model",
     is_error=False,
     subtype="success",
+    mode="default",
 ):
     """Stream-json text of one session, with the events trigger_eval reads.
 
@@ -72,6 +73,7 @@ def stream(
             "plugins": plugins,
             "mcp_servers": list(mcp),
             "model": model,
+            "permissionMode": mode,
             "claude_code_version": "9.9.9",
         }
     ]
@@ -387,6 +389,77 @@ def test_session_isolation():
     for s in plain["seen"]:
         assert "CLAUDE_CODE_OAUTH_TOKEN" not in s["env"]
         assert s["env"].get("CLAUDE_CODE_DISABLE_CLAUDE_MDS") == "1"
+
+
+def token_scenario(raw):
+    work = Path(tempfile.mkdtemp())
+    tok = work / "token"
+    tok.write_bytes(raw)
+    try:
+        return scenario(good, args=["--token-file", str(tok)])
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def test_token_file_utf16_prints_no_token():
+    r = token_scenario(TOKEN.encode("utf-16"))
+    assert TOKEN not in r["text"].replace("\\x00", ""), "the token was printed"
+    assert r["code"] == 2, r["code"]
+    assert "--token-file must be UTF-8 text" in r["text"], r["text"]
+    assert r["seen"] == [], len(r["seen"])
+
+
+def test_token_file_drops_bom():
+    r = token_scenario(TOKEN.encode("utf-8-sig"))
+    assert r["code"] == 0, r["text"]
+    assert {s["env"]["CLAUDE_CODE_OAUTH_TOKEN"] for s in r["seen"]} == {TOKEN}
+
+
+def test_token_file_takes_token_from_message():
+    oat = "sk-ant-oat01-FAKE_fake-0123"
+    message = f"Your OAuth token:\n\n{oat}\n\nSet CLAUDE_CODE_OAUTH_TOKEN=<token>.\n"
+    r = token_scenario(message.encode("utf-8"))
+    assert r["code"] == 0, r["text"]
+    assert {s["env"]["CLAUDE_CODE_OAUTH_TOKEN"] for s in r["seen"]} == {oat}
+    assert oat not in r["text"], "the token was printed"
+
+
+def test_token_mode_drops_api_key_vars():
+    names = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+    saved = {k: os.environ.get(k) for k in names}
+    os.environ.update({k: "parent-value" for k in names})
+    try:
+        r = token_scenario(TOKEN.encode("utf-8"))
+        plain = scenario(good)
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    assert r["code"] == 0 and len(r["seen"]) == 10, r["text"]
+    for s in r["seen"]:
+        assert not set(names) & set(s["env"]), sorted(set(names) & set(s["env"]))
+    assert plain["code"] == 0 and len(plain["seen"]) == 10, plain["text"]
+    for s in plain["seen"]:
+        assert all(s["env"].get(k) == "parent-value" for k in names)
+
+
+def test_permission_mode_and_env_scrub_are_set():
+    r = scenario(good)
+    assert len(r["seen"]) == 10
+    for s in r["seen"]:
+        assert "--permission-mode default" in " ".join(s["cmd"]), s["cmd"]
+        assert s["env"].get("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB") == "1", sorted(s["env"])
+
+
+def test_permission_mode_change_is_contamination():
+    def behavior(q, v, nth):
+        mode = "auto" if q == "N1" else "default"
+        return stream([OWN] if q.startswith("P") else [], mode=mode)
+
+    r = scenario(behavior, workers="1")
+    assert r["code"] == 2 and "contaminated session" in r["text"], r["text"]
 
 
 def test_contamination_stops_at_once():
@@ -839,6 +912,12 @@ TESTS = [
     test_crash_is_invalid_run,
     test_print_survives_cp1252,
     test_session_isolation,
+    test_token_file_utf16_prints_no_token,
+    test_token_file_drops_bom,
+    test_token_file_takes_token_from_message,
+    test_token_mode_drops_api_key_vars,
+    test_permission_mode_and_env_scrub_are_set,
+    test_permission_mode_change_is_contamination,
     test_contamination_stops_at_once,
     test_contamination_kinds,
     test_result_error,
