@@ -202,21 +202,24 @@ in [docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/do
 | --- | --- |
 | Eval assertions that passed (v0.1.5) | 70 of 75 |
 | Outputs with no sentence-length or paragraph-length error (v0.1.5) | 24 of 24 with the skill; 3 of 15 without it, in an earlier batch (2026-10-02) |
-| Should-trigger prompts that loaded the skill | 30 of 30 |
-| Held-out should-trigger prompts that loaded it | 33 of 33 |
+| Should-trigger prompts that loaded the skill | 30 of 30; 29 of 30 with the v0.1.10 description |
+| Held-out should-trigger prompts that loaded it | 33 of 33; 27 of 33 with the v0.1.10 description |
 | Requests for plain words or for a non-expert reader, in a blind set | 60 of 60; 19 of 60 with the v0.1.10 description |
-| Near-miss prompts that loaded it by mistake | 0 of 30, 0 of 15 held-out, and 0 of 60 in the blind set |
+| Near-miss prompts that loaded it by mistake | 0 of 30, 0 of 15 held-out, and 0 of 60 in the blind set; the same with the v0.1.10 description |
 
 ## Limits
 
-- **It may not fire in a crowded setup.** In clean test sessions,
+- **It does not always fire.** On 2026-10-04 (claude-opus-5[1m]),
   `explain how OAuth refresh tokens work, keep it simple` and
-  `I'm new to Rust, explain lifetimes` loaded it in 3 of 3. In an earlier
-  test (2026-10-04), the sessions also loaded the tester's own CLAUDE.md,
-  memory, and synced skills, with a second copy of this skill. There, both
-  loaded it in 0 of 3. When the skill list is too long, Claude Code drops the
-  descriptions of the skills you use least. Run `/doctor` to check. If it
-  does not fire, put "STE" in the prompt.
+  `I'm new to Rust, explain lifetimes` each loaded it in 0 of 3 sessions.
+  The description then was the v0.1.10 text. On 2026-11-11
+  (claude-opus-5-5, clean test sessions), each loaded it in 3 of 3, with
+  that text and with v0.1.11. The cause of the difference is not known,
+  because the model and the test setup both changed. When the skill list is
+  too long, Claude Code drops the descriptions of the skills you use least.
+  `/doctor` gives an estimate of the size of the list, and the `--debug`
+  log shows a warning when the list is too long. If the skill does not
+  fire, put "STE" in the prompt.
 - **It can make a claim less certain.** The rewrite input says that the
   purchase "is anticipated to require" board approval. In 3 of 6 runs, the
   output said that it "will probably need" approval.
@@ -227,8 +230,13 @@ in [docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/do
   compacted. There, Claude kept using names that it had made up.
 - **It turns advice into a command.** "It is recommended that..." became a
   direct command in 4 of 4 test inputs that held a recommendation.
-- **The samples are small.** Each eval ran 3 to 6 times, and each trigger
-  prompt ran 3 times. Claude graded the outputs, not people.
+- **The samples are small.** Each eval ran 3 to 6 times. Each trigger
+  prompt ran 3 times, and 5 times in the blind set. Claude graded the
+  outputs, not people.
+- **A reviewer saw the blind set before its test.** A Claude reviewer read
+  the file during its review of the first new description. The edits after
+  that review only made the description narrower. Such edits cannot add
+  hits, but the count of mistaken loads can look better than it is.
 - **It is not STE compliance.** The skill does not use the official
   dictionary of about 900 approved words. For regulated documentation, use
   the official specification.

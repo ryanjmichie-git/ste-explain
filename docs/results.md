@@ -380,8 +380,8 @@ subagent tokens, graders used 683,564, and the total was 1,565,850.
 The description changed in v0.1.11. It now names the user's intent first:
 simple, plain, or jargon-free wording, a user who is new to the topic, or a
 reader outside the field. It tells Claude to check the skill before a short
-answer. It also says to use the skill with any skill that makes slides,
-charts, or documents. The skill body did not change.
+answer. For such a request, it also says to use the skill with any skill
+that makes slides, charts, or documents. The skill body did not change.
 
 Method (2026-11-11, Claude Code 2.1.292):
 
@@ -393,7 +393,13 @@ Method (2026-11-11, Claude Code 2.1.292):
   order, on claude-opus-5-5. One check used claude-sonnet-5-5.
 - A new set of 48 requests (`evals/trigger-cued-dev.json` and
   `evals/trigger-cued-test.json`) was split in two. The dev half chose the
-  description. The blind half ran once, at the end.
+  description. The blind half ran only after that choice. It ran first on
+  claude-opus-5-5 (5 runs), before every other check in the table. Later it
+  ran on claude-sonnet-5-5 (3 runs).
+- The sessions ran in permission mode `auto`, the mode in which a session
+  with an empty config folder started. The two descriptions of a batch had
+  the same mode. `trigger_eval.py` now sets `--permission-mode default`, so
+  do not compare later trigger rates with these.
 
 | Check | Queries × runs | v0.1.11 | v0.1.10 |
 | --- | --- | --- | --- |
@@ -402,17 +408,33 @@ Method (2026-11-11, Claude Code 2.1.292):
 | Blind set on Sonnet 5.5: should trigger; loaded by mistake | 12 × 3 each | 36 of 36; 0 of 36 | 14 of 36; 0 of 36 |
 | Standard set: should trigger; near-misses | 10 × 3 each | 30 of 30; 0 of 30 | 29 of 30; 0 of 30 |
 | Held-out set: should trigger; near-misses | 11 × 3, 5 × 3 | 33 of 33; 0 of 15 | 27 of 33; 0 of 15 |
+| Requests with "clear" as the only cue (permission mode `default`) | 8 × 3 | 22 of 24 | 12 of 24 |
 | Paired /eval (6 evals × 3 runs), assertions passed | 90 | 81 | 84 |
 
 - The largest gain was on indirect requests, such as "numbers aren't my
   thing" or "first apartment ever". The old description loaded the skill in
   0 of 20 of these sessions, and the new one in 20 of 20.
 - The /eval result is within the keep rule: at most 3 points below the old
-  text. The points moved where graders judged outputs that look the same in
-  both arms.
-- In clean sessions, the old description also loaded the OAuth "keep it
-  simple" and "I'm new to Rust" prompts in 3 of 3. The 0 of 3 results from
-  2026-10-04 came from sessions that also loaded the tester's own setup.
+  text. Per eval, old/new: OAuth 15/15, rewrite 14/13, bike chain 13/15, ETL
+  runbook 15/14, jargon 12/11, coined jargon 15/13. The coined-jargon and
+  rewrite points are on outputs that look the same in both arms. In the
+  coined-jargon eval, both arms repeated "does not define" for each name,
+  and the graders split. On fact 7 of the rewrite eval, both arms wrote
+  "will probably need", in 1 of 3 runs and in 2 of 3. The ETL and jargon
+  points are differences in the outputs. One runbook step started with a
+  statement, and one explanation used bold labels that the linter counts as
+  sentences.
+- In these sessions, the old description also loaded the OAuth "keep it
+  simple" and "I'm new to Rust" prompts in 3 of 3. On 2026-10-04, on
+  claude-opus-5[1m], the same description loaded each prompt in 0 of 3. The
+  cause is not isolated. The model, the Claude Code version, the permission
+  mode, the effort setting, and the session isolation were all different.
+- The v0.1.11 description does not contain the word "clear". The spec
+  lists "clear" as a cue that must trigger. Thus a later check ran 8 new
+  requests in which "clear" is the only cue. The subagent that wrote them
+  did not read the v0.1.11 description. This check ran in permission mode
+  `default`, so compare its two results only with each other. The 8
+  requests are now in `evals/trigger-cued-dev.json`.
 - `claude plugin details` projects about 289 tokens in every session
   (v0.1.10: about 264) and about 1,300 more when the skill fires.
 - A red-team review blocked the first candidate for three scope claims, and

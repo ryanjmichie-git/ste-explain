@@ -36,9 +36,12 @@ Measured with `scripts/trigger_eval.py` (3 runs).
       1 more false trigger.
 - Open defect: three should-trigger queries were unstable (OAuth "keep it
   simple", gradient descent "smart high schooler", fare-validation API).
-  In clean sessions on 2026-11-11, v0.1.11 loaded each one in 3 of 3. The
-  old misses came from sessions that also loaded the tester's own setup, so
-  the defect stays open until a crowded setup is tested.
+  In clean sessions on 2026-11-11 (claude-opus-5-5), v0.1.11 loaded each one
+  in 3 of 3. The v0.1.10 description loaded two of them in 3 of 3 and the
+  gradient descent query in 2 of 3. The cause of the old misses is not
+  isolated. The model, the Claude Code version, the permission mode, the
+  effort setting and the session isolation were all different. The defect
+  stays open.
 
 ## Hygiene
 
