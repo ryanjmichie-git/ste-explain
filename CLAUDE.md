@@ -13,7 +13,9 @@ Everything else in this repo exists to measure and improve it. Read
   skill agree (rule count, line count, description, rule 7 wording, lint)
 - `python3 scripts/trigger_eval.py` — trigger evals via headless `claude -p`
   (3 runs × 20 queries). `--ref <git-ref>` pairs the old and new description
-  in one batch; `--queries evals/trigger-heldout.json` runs the held-out set
+  in one batch; `--queries evals/trigger-heldout.json` runs the held-out set.
+  `--token-file <file>` (a `claude setup-token` token) gives each session an
+  empty config; `evals/trigger-cued-dev.json` and `-test.json` are the cued set
 - `python3 scripts/tabulate_eval.py workspace/iteration-N` — grades and lint
   errors per eval, arm and run
 - `python3 scripts/screen_blind.py make|tally` — blind copies and majority

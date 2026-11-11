@@ -34,8 +34,11 @@ Measured with `scripts/trigger_eval.py` (3 runs).
       same batch (`--ref`), on trigger-evals.json and trigger-heldout.json:
       at most 2 should-trigger hits below the old one per file, and at most
       1 more false trigger.
-- Open defect: three should-trigger queries are unstable (OAuth "keep it
+- Open defect: three should-trigger queries were unstable (OAuth "keep it
   simple", gradient descent "smart high schooler", fare-validation API).
+  In clean sessions on 2026-11-11, v0.1.11 loaded each one in 3 of 3. The
+  old misses came from sessions that also loaded the tester's own setup, so
+  the defect stays open until a crowded setup is tested.
 
 ## Hygiene
 

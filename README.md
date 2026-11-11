@@ -189,27 +189,34 @@ This pattern comes from user feedback. One user keeps style rules in a skill
 that posts to Slack, and Claude follows them every time with no reminder.
 This repo does not measure it.
 
-## Results (v0.1.5)
+## Results
 
-Five evals ran three times each. Claude subagents wrote and graded the
-outputs, and a deterministic linter checked the structure. The tester always
+Five evals ran three times each on v0.1.5. Claude subagents wrote and graded
+the outputs, and a deterministic linter checked the structure. The tester always
 had the skill, so the eval rows show the output when the skill fires. The
-trigger rows show whether it fires. The full tables and the failed outputs are
+trigger rows show whether it fires. They are for v0.1.11, in clean test
+sessions on claude-opus-5-5 (2026-11-11). The full tables and the failed outputs are
 in [docs/results.md](https://github.com/ryanjmichie-git/ste-explain/blob/main/docs/results.md).
 
 | Measure | Result |
 | --- | --- |
-| Eval assertions that passed | 70 of 75 |
-| Outputs with no sentence-length or paragraph-length error | 24 of 24 with the skill; 3 of 15 without it, in an earlier batch (2026-10-02) |
-| Should-trigger prompts that loaded the skill | 26 of 30 |
-| Held-out should-trigger prompts that loaded it | 23 of 33 |
-| Near-miss prompts that loaded it by mistake | 0 of 30, and 1 of 15 held-out |
+| Eval assertions that passed (v0.1.5) | 70 of 75 |
+| Outputs with no sentence-length or paragraph-length error (v0.1.5) | 24 of 24 with the skill; 3 of 15 without it, in an earlier batch (2026-10-02) |
+| Should-trigger prompts that loaded the skill | 30 of 30 |
+| Held-out should-trigger prompts that loaded it | 33 of 33 |
+| Requests for plain words or for a non-expert reader, in a blind set | 60 of 60; 19 of 60 with the v0.1.10 description |
+| Near-miss prompts that loaded it by mistake | 0 of 30, 0 of 15 held-out, and 0 of 60 in the blind set |
 
 ## Limits
 
-- **It does not always fire.** `explain how OAuth refresh tokens work, keep it simple`
-  loaded it in 0 of 3 sessions. So did `I'm new to Rust, explain lifetimes`.
-  If it does not fire, put "STE" in the prompt.
+- **It may not fire in a crowded setup.** In clean test sessions,
+  `explain how OAuth refresh tokens work, keep it simple` and
+  `I'm new to Rust, explain lifetimes` loaded it in 3 of 3. In an earlier
+  test (2026-10-04), the sessions also loaded the tester's own CLAUDE.md,
+  memory, and synced skills, with a second copy of this skill. There, both
+  loaded it in 0 of 3. When the skill list is too long, Claude Code drops the
+  descriptions of the skills you use least. Run `/doctor` to check. If it
+  does not fire, put "STE" in the prompt.
 - **It can make a claim less certain.** The rewrite input says that the
   purchase "is anticipated to require" board approval. In 3 of 6 runs, the
   output said that it "will probably need" approval.
@@ -257,7 +264,8 @@ checks, not 72.
   packages Strunk's text of 1918, with its 18 rules, as a reference of about
   12,000 tokens. Claude reads it when it writes prose. STE differs in that
   it adds countable limits that a linter can check. ste-explain costs about
-  180 tokens in every session and about 790 more when it fires.
+  290 tokens in every session and about 1,300 more when it fires (Claude
+  Code's estimate).
 - [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill)
   applies STE to text that AI agents read, such as tool descriptions and
   messages between agents. It is a Claude Code skill with a linter script.

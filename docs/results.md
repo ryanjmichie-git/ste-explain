@@ -374,3 +374,48 @@ check did not use the full text of the specification.
 
 Iteration 16 used 15 tester runs and 15 grader runs. Testers used 882,286
 subagent tokens, graders used 683,564, and the total was 1,565,850.
+
+## Triggering in clean sessions (v0.1.11, iteration 20)
+
+The description changed in v0.1.11. It now names the user's intent first:
+simple, plain, or jargon-free wording, a user who is new to the topic, or a
+reader outside the field. It tells Claude to check the skill before a short
+answer. It also says to use the skill with any skill that makes slides,
+charts, or documents. The skill body did not change.
+
+Method (2026-11-11, Claude Code 2.1.292):
+
+- `scripts/trigger_eval.py --token-file` gave each session an empty config
+  folder. No CLAUDE.md, memory, synced skill, or MCP server reached the
+  session. A check stopped the batch if a session saw a second copy of the
+  skill or a different model.
+- Each batch ran the old and the new description together, in alternating
+  order, on claude-opus-5-5. One check used claude-sonnet-5-5.
+- A new set of 48 requests (`evals/trigger-cued-dev.json` and
+  `evals/trigger-cued-test.json`) was split in two. The dev half chose the
+  description. The blind half ran once, at the end.
+
+| Check | Queries × runs | v0.1.11 | v0.1.10 |
+| --- | --- | --- | --- |
+| Blind set: requests for plain words or a non-expert reader | 12 × 5 | 60 of 60 | 19 of 60 |
+| Blind set: other requests that loaded it by mistake | 12 × 5 | 0 of 60 | 0 of 60 |
+| Blind set on Sonnet 5.5: should trigger; loaded by mistake | 12 × 3 each | 36 of 36; 0 of 36 | 14 of 36; 0 of 36 |
+| Standard set: should trigger; near-misses | 10 × 3 each | 30 of 30; 0 of 30 | 29 of 30; 0 of 30 |
+| Held-out set: should trigger; near-misses | 11 × 3, 5 × 3 | 33 of 33; 0 of 15 | 27 of 33; 0 of 15 |
+| Paired /eval (6 evals × 3 runs), assertions passed | 90 | 81 | 84 |
+
+- The largest gain was on indirect requests, such as "numbers aren't my
+  thing" or "first apartment ever". The old description loaded the skill in
+  0 of 20 of these sessions, and the new one in 20 of 20.
+- The /eval result is within the keep rule: at most 3 points below the old
+  text. The points moved where graders judged outputs that look the same in
+  both arms.
+- In clean sessions, the old description also loaded the OAuth "keep it
+  simple" and "I'm new to Rust" prompts in 3 of 3. The 0 of 3 results from
+  2026-10-04 came from sessions that also loaded the tester's own setup.
+- `claude plugin details` projects about 289 tokens in every session
+  (v0.1.10: about 264) and about 1,300 more when the skill fires.
+- A red-team review blocked the first candidate for three scope claims, and
+  the fixes went in before the blind run. The reviewer had opened the blind
+  file while it read the repo. For that reason the fixes only narrow the
+  description.
